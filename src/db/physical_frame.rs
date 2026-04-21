@@ -1,6 +1,8 @@
 //! Промежуточные структуры для serde_json для парсинга данных
 //! разбиения корпуса для расчете эпюров
 use serde::{Deserialize, Serialize};
+
+use crate::db::DataArray;
 /// Данные по шпангоуту
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PhysicalFrameData {

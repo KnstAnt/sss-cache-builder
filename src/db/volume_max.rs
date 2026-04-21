@@ -2,7 +2,8 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::entities::data::DataArray;
+use crate::db::DataArray;
+
 /// Максимальный объем для отсеков
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MaxData {

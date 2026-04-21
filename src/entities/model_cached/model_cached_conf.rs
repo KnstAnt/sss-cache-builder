@@ -33,6 +33,4 @@ pub struct ModelCachedConf {
     pub compartment_level_step_qnt: usize,    
     /// Level step for compartments
     pub bounds_level_step: f64,
-    /// Angles for DSO, degree
-    pub dso_angles: Vec<f64>,   
 }

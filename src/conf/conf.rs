@@ -1,14 +1,16 @@
 use std::{fs::OpenOptions, path::Path};
 use sal_core::dbg::Dbg;
 use serde::Deserialize;
-use crate::conf::data::DataConf;
+use crate::conf::{model::ModelConf, thread_pool_conf::ThreadPoolConf};
 
 use super::api_conf::ApiConf;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Conf {
     pub api: ApiConf,
-    pub data: DataConf,
+    pub model: ModelConf,
+    #[serde(alias="thread-pool")]
+    pub thread_pool: ThreadPoolConf,    
 }
 //
 //
