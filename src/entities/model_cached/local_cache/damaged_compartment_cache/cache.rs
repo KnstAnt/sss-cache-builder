@@ -71,16 +71,6 @@ impl DamagedCompartmentCache {
         // println!("compartment_cache calc_coeff {} {:.3} {:.3} {:.3}", self.dbg(), volume_max, volume_brutto, self.coeff.unwrap());
         Ok(())
     }  
-    /// Return (volume, center of volume)
-    pub fn get(&self, heel: f64, trim: f64, draught: f64) -> (f64, Position) {
-        let error = Error::new(self.dbg(), "get");
-        let cache = self.cache.as_ref().ok_or(error.pass("no cache"))?;
-        let query = [heel, trim];
-        let result = get_from_level(&self.dbg, cache, &query, draught, None, 3)
-            .map_err(|err| error.pass_with("get_from_level", err))?;
-        let coeff = self.coeff.as_ref().ok_or(error.pass("no coeff"))?; 
-        (result[0] * coeff, Position::new(result[1], result[2], result[3]))
-    }
 }
 //
 //

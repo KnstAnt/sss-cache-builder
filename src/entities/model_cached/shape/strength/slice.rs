@@ -1,5 +1,4 @@
 use parry3d_f64::math::Vec3;
-use crate::tools::strength::*;
 use std::ops::Range;
 use rayon::prelude::*;
 use rayon::slice::ParallelSlice;
@@ -35,9 +34,9 @@ impl Slice {
 
                 // --- ЧАСТЬ 1: Фрагменты внутри слоя ---
                 // Отсекаем всё, что выше z_high, а затем из результата берем то, что выше z_low
-                let n_tmp = clip_axis_to_buffer(poly, &mut buf_above, 2, z_high, true);
+                let n_tmp = super::clip_axis_to_buffer(poly, &mut buf_above, 2, z_high, true);
                 if n_tmp >= 3 {
-                    let n_in = clip_axis_to_buffer(&buf_above[..n_tmp], &mut buf_in, 2, z_low, false);
+                    let n_in = super::clip_axis_to_buffer(&buf_above[..n_tmp], &mut buf_in, 2, z_low, false);
                     if n_in >= 3 {
                         let p0 = buf_in[0];
                         for i in 1..n_in - 1 {
@@ -53,7 +52,7 @@ impl Slice {
 
                 // --- ЧАСТЬ 2: Фрагменты выше слоя (Транзит) ---
                 // Берем части полигона, которые строго выше z_high
-                let n_above = clip_axis_to_buffer(poly, &mut buf_above, 2, z_high, false);
+                let n_above = super::clip_axis_to_buffer(poly, &mut buf_above, 2, z_high, false);
                 if n_above >= 3 {
                     let p0 = buf_above[0];
                     let mut area_above = 0.0;
@@ -84,7 +83,7 @@ impl Slice {
         let mut total_vol = 0.0;
         for range in &self.poly_ranges {
             let poly = &self.points[range.start..range.end];
-            let n = clip_axis_to_buffer(poly, &mut poly_buffer, 2, z_wl, true);
+            let n = super::clip_axis_to_buffer(poly, &mut poly_buffer, 2, z_wl, true);
             if n < 3 { continue; }
             let p0 = poly_buffer[0];
             for i in 1..n - 1 {

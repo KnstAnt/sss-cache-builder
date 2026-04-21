@@ -29,7 +29,7 @@ fn main() {
             conf.api.address.host.clone(),
             conf.api.address.port.clone(),
         ));
-    let bounds = db.physical_bounds().unwrap();
+    let frames = db.frames().unwrap();
     let compartments_max = db.compartments_max().unwrap();
  /*   let physical_frames: [f64; 196] = [
         -3.6, -3.0, -2.4, -1.8, -1.2, -0.6, 0.0, 0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.2, 4.8, 5.4, 6.0,

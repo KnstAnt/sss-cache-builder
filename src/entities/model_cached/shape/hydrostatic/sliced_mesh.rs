@@ -1,5 +1,4 @@
 use parry3d_f64::math::Vec3;
-use crate::tools::{Hydrostatics, Plane};
 
 pub struct SlicedMesh {
     /// Треугольники, оказавшиеся под плоскостью (полезный объем)
@@ -11,7 +10,7 @@ impl SlicedMesh {
     ///
     /// Для замкнутого меша объем считается как сумма ориентированных объемов тетраэдров.
     /// Требует передачи плоскости `Plane` для закрытия "крышки" разреза.
-    pub fn volume(&self, plane: &Plane) -> f64 {
+    pub fn volume(&self, plane: &super::Plane) -> f64 {
         let mut total_volume = 0.0;
         let mut add_tetrahedron = |p1: &Vec3, p2: &Vec3, p3: &Vec3| {
             total_volume += p1.dot(p2.cross(*p3)) / 6.0;
@@ -40,7 +39,7 @@ impl SlicedMesh {
     /// Вычисление физических характеристик (объема, центра величины/масс, моментов инерции) традиционно делают через интегрирование по объему,
     /// но для полигональных сеток это решается в разы элегантнее — через интегрирование по поверхности.
     /// В основе лежит Теорема о дивергенции (Формула Остроградского-Гаусса)
-    pub fn hydrostatics(&self, plane: &Plane) -> Hydrostatics {
+    pub fn hydrostatics(&self, plane: &super::Plane) -> super::Hydrostatics {
         let mut total_volume = 0.0;
         let mut sum_centroid = Vec3::ZERO;
         // Вспомогательная замыкание (closure) для добавления тетраэдра
@@ -88,7 +87,7 @@ impl SlicedMesh {
             // Защита от деления на ноль (судно полностью в воздухе)
             Vec3::ZERO
         };
-        Hydrostatics {
+        super::Hydrostatics {
             volume: total_volume.abs(),
             center_of_buoyancy,
         }

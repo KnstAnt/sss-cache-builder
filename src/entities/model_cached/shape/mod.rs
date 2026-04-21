@@ -3,6 +3,8 @@
 mod area_shape;
 mod displacement_shape;
 mod utils;
+mod hydrostatic;
+mod strength;
 
 pub(crate) use area_shape::*;
 pub(crate) use displacement_shape::*;

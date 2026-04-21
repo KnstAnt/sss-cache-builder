@@ -1,27 +1,20 @@
 use parry3d_f64::{math::Vec3, shape::TriMesh};
 
-use crate::tools::{
-    Slice, strength::*,
-};
+use crate::entities::model_cached::shape::strength::Slice;
+
 
 /// Главный строитель шпаций
-pub struct HullSlicer {
-    mesh: TriMesh,
-}
+pub struct HullSlicer;
 //
 impl HullSlicer {
-    //
-    pub fn new(mesh: TriMesh) -> Self {
-        Self { mesh }
-    }
     /// Рассекает меш на шпации по заданным координатам X
-    pub fn slice(&self, x_coords: &[f64]) -> Vec<Slice> {
+    pub fn slice(mesh: &TriMesh, x_coords: &[f64]) -> Vec<Slice> {
         if x_coords.len() < 2 { return Vec::new(); }
 
         let n_stations = x_coords.len() - 1;
         
-        let vertices = self.mesh.vertices();
-        let indices = self.mesh.indices();
+        let vertices = mesh.vertices();
+        let indices = mesh.indices();
         
          // 1. Binning: Распределяем индексы треугольников по "корзинам" шпаций
         let mut grid: Vec<Vec<u32>> = vec![Vec::with_capacity(indices.len() / n_stations); n_stations];
@@ -68,9 +61,9 @@ impl HullSlicer {
                 let tri_verts = [vertices[tri[0] as usize], vertices[tri[1] as usize], vertices[tri[2] as usize]];
 
                 // Нарезаем треугольник границами X
-                let n1 = clip_axis_to_buffer(&tri_verts, &mut buf_b, 0, x_s, false);
+                let n1 = super::clip_axis_to_buffer(&tri_verts, &mut buf_b, 0, x_s, false);
                 if n1 < 3 { continue; }
-                let n2 = clip_axis_to_buffer(&buf_b[..n1], &mut buf_a, 0, x_e, true);
+                let n2 = super::clip_axis_to_buffer(&buf_b[..n1], &mut buf_a, 0, x_e, true);
                 if n2 < 3 { continue; }
 
                 let start = st_points.len();

@@ -4,7 +4,7 @@ pub use hull::*;
 pub use slice::*;
 use parry3d_f64::{math::Vec3, shape::TriMesh};
 
-pub fn calculate_strength_full(mesh: TriMesh, frames: &[f64], draughts: &[f64]) -> Vec<(f64, f64)> {
+pub fn calculate_strength_full(mesh: &TriMesh, frames: &[f64], draughts: &[f64]) -> Vec<(f64, f64)> {
     let displacements = calculate_strength_bounded(mesh, frames, draughts);
     let res: Vec<_> = draughts
         .into_iter()
@@ -18,9 +18,8 @@ pub fn calculate_strength_full(mesh: TriMesh, frames: &[f64], draughts: &[f64]) 
     res
 }
 
-pub fn calculate_strength_bounded(mesh: TriMesh, frames: &[f64], draughts: &[f64]) -> Vec<Vec<(f64, f64)>> {
-    let hull = HullSlicer::new(mesh);
-    let slices = hull.slice(frames);
+pub fn calculate_strength_bounded(mesh: &TriMesh, frames: &[f64], draughts: &[f64]) -> Vec<Vec<(f64, f64)>> {
+    let slices = HullSlicer::slice(mesh, frames);
     slices
         .iter()
         .map(|s| s.calculate_displacements(draughts))

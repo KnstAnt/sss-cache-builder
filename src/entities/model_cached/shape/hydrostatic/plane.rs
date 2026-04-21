@@ -1,5 +1,4 @@
 use parry3d_f64::{math::*, shape::TriMesh};
-use crate::tools::SlicedMesh;
 
 /// Секущая плоскость: (n, p) = d
 pub struct Plane {
@@ -26,7 +25,7 @@ impl Plane {
     /// Мы будем сохранять только те части треугольников, которые находятся «под» плоскостью (d≤0),
     /// что типично для задачи расчета погруженного объема судна.
     /// Также мы соберем отрезки, лежащие на самой секущей плоскости (периметр сечения).
-    pub fn slice_mesh(&self, mesh: &TriMesh) -> SlicedMesh {
+    pub fn slice_mesh(&self, mesh: &TriMesh) -> super::SlicedMesh {
         let vertices  = mesh.vertices(); 
         let indices = mesh.indices();
         // Шаг 1: Предварительно вычисляем расстояния для всех вершин.
@@ -99,7 +98,7 @@ impl Plane {
                 _ => unreachable!(),
             }
         }
-        SlicedMesh {
+        super::SlicedMesh {
             submerged_triangles, //: submerged_triangles.into_iter().map(|vv| vv.map(|v| Point3::new(v.x, v.y, v.z))).collect(),
             waterline_edges: waterline_edges.into_iter().map(|vv| vv.map(|v| Vec3::new(v.x, v.y, v.z))).collect(),
         }

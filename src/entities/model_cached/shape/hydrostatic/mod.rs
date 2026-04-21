@@ -7,20 +7,18 @@ pub use plane::*;
 pub use hydrostatics::*;
 
 use obj::{Obj, ObjData};
-use parry3d_f64::glamx::DQuat;
 use parry3d_f64::math::*;
 use parry3d_f64::shape::{TriMesh, TriMeshFlags};
-use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::time::Instant;
 
-use crate::tools::{DisplacementCache, LocalCache, Position, load_stl};
+use crate::entities::model_cached::{load_stl, position};
 
 
+/*
 pub fn test_sofia() {
     let scale = 0.001f64;
     let path = "assets/Sofiya.stl";
-    let mut mesh = load_stl(Path::new(path)).scaled(Vec3::new(scale, scale, scale));
+    let mut mesh = load_stl(path).scaled(Vec3::new(scale, scale, scale));
     let center = Vec3::new(65.25, 0., 0.);
     let heel = 20.;
     let trim = 20.;
@@ -44,7 +42,7 @@ pub fn test_sofia() {
         hydrostatics.volume,
         center_of_buoyancy
     );
-}
+}*/
 
 pub fn calculate_hydrostatic(mut mesh: TriMesh, dx: f64, heel: f64, trim: f64, draught: f64) -> (f64, Vec3) {
     let center = Vec3::new(dx, 0., 0.);
@@ -115,9 +113,8 @@ pub fn position(center: &Vec3, heel: f64, trim: f64, draught: f64) -> Isometry3<
     Isometry::from_parts(translation, rotation)
 }*/
 
-
-/// Расчет нормали по крену и дифференту
 /*
+/// Расчет нормали по крену и дифференту
 pub fn normal(heel: f64, trim: f64) -> Vector3<f64> {
     let heel_rad = heel.to_radians();
     let trim_rad = -trim.to_radians();

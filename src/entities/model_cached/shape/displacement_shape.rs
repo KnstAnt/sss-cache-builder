@@ -1,4 +1,4 @@
-use parry2d_f64::math::{Rot3, Vec2};
+use parry2d_f64::math::Vec2;
 use parry3d_f64::math::{Pose, Vec3};
 use parry3d_f64::shape::{Cuboid, TriMesh, TriMeshFlags};
 use sal_core::dbg::Dbg;
@@ -6,8 +6,9 @@ use sal_core::error::Error;
 use spade::Point2;
 use std::path::PathBuf;
 
+use crate::entities::model_cached::shape::strength::calculate_strength_bounded;
 use crate::entities::model_cached::{Shape, compartment_center, load_stl};
-use crate::entities::{Bound, Position};
+use crate::entities::{Bound, Bounds, Position};
 use crate::entities::model_cached::shape::utils;
 
 
@@ -61,74 +62,6 @@ impl DisplacementShape {
     /// для поврежденных отсеков задается как для корпса судна
     pub fn new_uninit(parent: &Dbg, path: PathBuf, model_x: Option<f64>, scale: f64) -> Self {
         Self::new(parent, None, Some(path), model_x, scale, 0.0001, 10000)
-    }
-    /// часть меша, пападающая в bound
-    pub fn part(&self, bound: &Bound) -> Result<Option<Self>, Error> {
-        let error = Error::new(&self.dbg, "split");
-        let half_size_x = bound.length().ok_or(error.err("no bound.length"))? / 2.;
-        //  let center_x = self.center.unwrap_or(Vec3::new(0., 0., 0.)).x;
-        //  let position_x = bound.center().ok_or(error.err("no bound.center"))? + center_x;
-        let position_x = bound.center().ok_or(error.err("no bound.center"))?;
-        let cuboid = Cuboid::new(Vec3::new(half_size_x, 100000., 100000.));
-        let mut src_mesh = self.mesh.as_ref().ok_or(error.err("no mesh"))?;
-        let mut mesh;
-        let mut epsilon = self.epsilon;
-        loop {
-            // TODO костыль для фикса бага: иногда меш вырезается не целиком.
-            // Тут проверяется что баунд вырезанного меша не превышает шаблон
-            let result = src_mesh.intersection_with_local_cuboid(
-                false,
-                &cuboid,
-                &Pose::from_translation(
-                    Vec3::new(position_x, 0., 0.),
-                ),
-                false,
-                epsilon,
-            );
-            mesh = match result {
-                Ok(mesh) => match mesh {
-                    Some(mesh) => mesh,
-                    None => return Ok(None),
-                },
-                Err(e) => {
-                    return Err(
-                        error.pass_with("mesh.intersection_with_local_cuboid", e.to_string())
-                    );
-                }
-            };
-            let aabb = mesh.aabb(&Pose::identity());
-            let bound_x_min = position_x - half_size_x;
-            let bound_x_max = position_x + half_size_x;
-            if aabb.mins.x + epsilon < bound_x_min || aabb.maxs.x - epsilon > bound_x_max {
-                let error = format!(
-                    "{} part error: wrong aabb, rebuild! x:{position_x} b_min:{bound_x_min} b_max:{bound_x_max} aabb.min:{} aabb.max:{} epsilon:{}",
-                    self.dbg, aabb.mins.x, aabb.maxs.x, epsilon
-                );
-                log::warn!("{error}");
-                src_mesh = &mesh;
-                epsilon *= 10.;
-                continue;
-            }
-            break;
-        }
-        if let Err(error) = mesh
-            .set_flags(TriMeshFlags::all())
-            .map_err(|err| error.pass_with("mesh.set_flags", err.to_string()))
-        {
-            log::error!("{}", error);
-        }
-        //  let filename = format!("{:.1}, {:.1}.stl", bound.start().unwrap() + 65.25,  bound.end().unwrap() + 65.25,);
-        //  let cache_dir: PathBuf = ("src/algorithm/entities/model_cached/test/sofia/disp_bounded/195/stl/".to_owned() + &filename).into();
-        //  super::write_stl(&cache_dir, &mesh);
-        Ok(Some(Self::new(
-            &self.dbg,
-            Some(mesh),
-            None,
-            Some(position_x),
-            1.,
-            epsilon,
-            self.resolution,
-        )))
     }
     ///
     /// Расчет водоизмещения судна и положение его центра в связанной с судной системой координат
@@ -278,62 +211,6 @@ impl DisplacementShape {
         ))
     }
     ///
-    /// Расчет водоизмещения для разных осадок (для шпации)
-    pub fn displacement_by_steps(&self, step: f64) -> Result<Vec<(f64, f64)>, Error> {
-        let error = Error::new(&self.dbg, "displacement_by_steps");
-        let aabb = self
-            .mesh
-            .as_ref()
-            .ok_or(error.err("no mesh"))?
-            .aabb(&Pose::identity());
-        let draught_min = aabb.mins.z;
-        let draught_max = aabb.maxs.z;
-        let mut steps = vec![(-100000., 0.), (draught_min, 0.)];
-        if let Some(full_mesh) = self.mesh.as_ref() {
-            //    let (vertices, indices) = (full_mesh.vertices().to_vec(), full_mesh.indices().to_vec());
-            //    let full_mesh = TriMesh::with_flags(vertices, indices, TriMeshFlags::all()).unwrap();
-            let full_volume = utils::volume(full_mesh);
-            let mut current_step = step / 30.; // сначала идем с маленьким шагом
-            // на маленьких осадках кривая не линейная
-            let mut draught = draught_min + current_step;
-            while draught < draught_max {
-                let result = full_mesh.local_split(Vec3::Z, draught, self.epsilon);
-                let volume = match result {
-                    parry3d_f64::query::SplitResult::Pair(mut mesh, _) => {
-                        if let Err(error) = mesh
-                            .set_flags(TriMeshFlags::all())
-                            .map_err(|err| error.pass_with("mesh.set_flags", err.to_string()))
-                        {
-                            log::error!("{}", error);
-                        }
-                        //    let filename = format!("10_{:.3}.stl", draught);
-                        //    let cache_dir: PathBuf = ("src/algorithm/entities/model_cached/test/sofia/disp_bounded/195/stl/".to_owned() + &filename).into();
-                        //    super::write_stl(&cache_dir, &mesh);
-                        utils::volume(&mesh)
-                    }
-                    parry3d_f64::query::SplitResult::Negative => 0.,
-                    parry3d_f64::query::SplitResult::Positive => full_volume,
-                };
-                steps.push((draught, volume));
-                draught += if current_step < step {
-                    current_step *= 1.5;
-                    if current_step > step {
-                        current_step = step;
-                    }
-                    current_step
-                } else {
-                    step
-                };
-            }
-            //     dbg!(volume, full_volume);
-            steps.push((draught_max, full_volume));
-            steps.push((draught_max + 1000000., full_volume));
-        } else {
-            steps.push((draught_max + 1000000., 0.));
-        }
-        Ok(steps)
-    }
-    ///
     /// Расчет [длинны и ширины по ватерлинии](https://github.com/a-givertzman/sss/blob/6d91fb09de073995c3a165ebaaa76e4f1e202f36/design/algorithm/part04_stability/chapter05_criteria/section02_weatherCriteria.md)
     pub fn waterline_size(&self, draught: f64) -> Result<(f64, f64), Error> {
         let error = Error::new(&self.dbg, "waterline_size");
@@ -465,6 +342,12 @@ impl DisplacementShape {
             parry3d_f64::query::IntersectResult::Positive => Ok((0., 0.)),
         }
     }
+    /// Расчет прочности
+    pub fn calculate_strength_bounded(&self, frames: &[f64], draughts: &[f64]) ->  Result<Vec<Vec<(f64, f64)>>, Error> {
+        let error = Error::new(&self.dbg, "calculate_strength_bounded");
+        let mesh = self.mesh.as_ref().ok_or(error.err("no mesh"))?;
+        Ok(calculate_strength_bounded(mesh, frames, draughts))
+    }   
     //
     pub fn save(&self, path: &PathBuf) -> Result<(), Error> {
         let error = Error::new(&self.dbg, "save");

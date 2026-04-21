@@ -32,7 +32,7 @@ impl Db {
     }
     ///
     /// Получение шпаций из физических фреймов
-    pub fn physical_bounds(&mut self) -> Result<Bounds, Error> {
+    pub fn frames(&mut self) -> Result<Vec<f64>, Error> {
         let error = Error::new("ShipModel", "physical_bounds");
         let data = &self
                 .api_client.fetch(&format!(
@@ -42,8 +42,8 @@ impl Db {
         let physical_frames: Vec<_> = PhysicalFrameArray::parse(&data)
             .map_err(|err| error.pass(err))?
             .data();
-        let bounds = Bounds::from_array(&physical_frames, 0.).map_err(|err| error.pass(err))?;
-        Ok(bounds)
+    //    let bounds = Bounds::from_array(&physical_frames, 0.).map_err(|err| error.pass(err))?;
+        Ok(physical_frames)
     }
     /// Чтение максимального объема и уровня для отсеков
     /// Возвращает мапу (ид отсека, максимальный объем (нетто))
