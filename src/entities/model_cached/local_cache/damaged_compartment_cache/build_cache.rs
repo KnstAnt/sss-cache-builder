@@ -1,0 +1,183 @@
+use sal_core::{dbg::Dbg, error::Error};
+use sal_sync::{
+    sync::{RwLock, Stack},
+    thread_pool::{JoinHandle, ThreadPool},
+};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, atomic::{AtomicBool, Ordering}},
+};
+
+use crate::entities::{Position, model_cached::DisplacementShape};
+
+///
+/// Provides logic to calculate and store cache used by [super::DamagedCompartmentCache].
+pub struct BuildDamagedCompartmentCache {
+    dbg: Dbg,
+    shape: Arc<RwLock<DisplacementShape>>,
+    heel_steps: Vec<f64>,
+    trim_steps: Vec<f64>,
+    draught_min: f64,
+    draught_max: f64,
+    draught_step: f64,
+    thread_pool: Arc<ThreadPool>,
+    exit: Arc<AtomicBool>,
+}
+//
+//
+impl BuildDamagedCompartmentCache {
+    ///
+    /// Crates a new instance.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn new(
+        parent: &Dbg,
+        shape: Arc<RwLock<DisplacementShape>>,
+        heel_steps: Vec<f64>,
+        trim_steps: Vec<f64>,
+        draught_min: f64,
+        draught_max: f64,
+        draught_step: f64,
+        thread_pool: Arc<ThreadPool>,
+        exit: Arc<AtomicBool>,
+    ) -> Self {
+        debug_assert!(draught_min < draught_max);
+        debug_assert!(draught_step > 0.);
+        Self {
+            dbg: Dbg::new(parent, "BuildCompartmentCache"),
+            shape: shape.clone(),
+            heel_steps,
+            trim_steps,
+            draught_min,
+            draught_max,
+            draught_step,
+            thread_pool,
+            exit,
+        }
+    }
+    ///
+    /// Creates and starts worker for [DamagedCompartmentCache::calculate].
+    ///
+    /// results: [[heel, trim, draught, volume, vx, vy, vz]]
+    pub fn build(self) -> (Vec<Vec<f64>>, Vec<Error>) {
+        log::info!("{}.build | Starting build", &self.dbg);
+        let error = Error::new(&self.dbg, "build");
+        let mut tasks: VecDeque<JoinHandle<_>> = VecDeque::new();
+        let results = Arc::new(Stack::new());
+        let mut errors = Vec::new();
+        let mut pass = |message: &str, err: Error| {
+            let error = error.pass_with(message, err);
+            log::error!("{:?}", &error);
+            errors.push(error);
+        };
+        let shape = self.shape.clone();
+        let (_, center_max) = match shape.read().properties() {
+            Ok((volume_max, center_max)) => (volume_max, center_max),
+            Err(err) => return (vec![], vec![error.pass_with("shape.properties", err)]),
+        };        
+        let mut draught_steps = Vec::new();
+        let mut draught = self.draught_min;
+        loop {
+            draught_steps.push(draught);
+            if draught >= self.draught_max {
+                break;
+            }
+            draught += self.draught_step;
+        }
+        let scheduler = self.thread_pool.scheduler();
+        'draught: for draught in draught_steps {
+            for &heel in &self.heel_steps {
+                for &trim in &self.trim_steps {
+                    // _true_ if the caller has requisted to exit.
+                    // Note that in this case the file may be partially filled.
+                    if self.exit.load(Ordering::SeqCst) {
+                        break 'draught;
+                    }
+                    let results = results.clone();
+                    let shape = Arc::clone(&shape);
+                    let thread_name =
+                        format!("BuildDamagedCompartmentCache displacement {draught} {heel} {trim}");
+                    log::info!("{}.build | Starting thread {thread_name}", &self.dbg);
+                    //  println!("Starting thread {thread_name}");
+                    let handle = scheduler
+                        .spawn_named(
+                            thread_name,
+                            move || {
+                                let guard = shape.read();
+                                results.push((
+                                    heel,
+                                    trim,
+                                    draught,
+                                    guard.displacement(heel, trim, draught),
+                                ));
+                                Ok(())
+                            },
+                        )
+                        .map_err(|err| {
+                            error.pass_with(
+                                format!(
+                                    "spawn task draught:{} heel:{} trim:{}",
+                                    draught, heel, trim
+                                ),
+                                err.to_string(),
+                            )
+                        });
+                    match handle {
+                        Ok(task) => tasks.push_back(task),
+                        Err(err) => pass("task handle", err),
+                    };
+                }
+            }
+        }
+        for task in tasks {
+            log::trace!("join thread {}", task.name());
+            if let Err(err) = task.join() {
+                pass("task join", err);
+            }
+        }
+        let mut vec_results = Vec::new();
+        while !results.is_empty() {
+            if let Some((heel, trim, draught, volume)) = results.pop() {
+                let (volume, center) = match volume {
+                    Ok((volume, center)) => (volume, center),
+                    Err(err) => {
+                        pass("results volume", err);
+                        continue;
+                    }
+                };
+                vec_results.push(vec![
+                    heel,
+                    trim,
+                    draught,
+                    volume,
+                    center.x(),
+                    center.y(),
+                    center.z(),
+                ]);
+            }
+        }
+        // для пустого объема значения заполняем руками для нормальной интерполяции
+        {
+            // берем значения с ненулевым объемом
+            let mut tmp: Vec<_> = vec_results.iter().filter(|v| v[3] > 0.).collect();
+            // и сортируем чтобы найти значение с минимальными креном/дифферентом и объемом
+            tmp.sort_by(|a, b| {
+                (a[0].abs() * a[3] + a[1].abs() * a[3])
+                    .partial_cmp(&(b[0].abs() * b[3] + b[1].abs() * b[3]))
+                    .unwrap()
+            });
+            let center_min = if let Some(first) = tmp.first() {
+                Position::new(first[4], first[5], 0.)
+            } else {
+                Position::new(center_max.x(), center_max.y(), 0.)
+            };
+            // для пустого объема значения меняем значения
+            vec_results.iter_mut().filter(|v| v[3] == 0.).for_each(|v| {
+                v[4] = center_min.x();
+                v[5] = center_min.y();
+                v[6] = center_min.z();
+            });
+        }
+        //   dbg!(&results);
+        (vec_results, errors)
+    }
+}
