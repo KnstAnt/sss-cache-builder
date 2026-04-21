@@ -1,1 +1,12 @@
 /target
+
+# log files
+*.log
+log*.*
+
+# win trash
+desktop.ini
+
+# too heavy
+assets/model/*
+assets/cache/*
