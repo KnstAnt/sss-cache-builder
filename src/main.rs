@@ -5,7 +5,7 @@ use log::info;
 use sal_core::dbg::Dbg;
 use sal_sync::thread_pool::ThreadPool;
 
-use crate::{conf::conf::Conf, db::api::{ApiClient, Db}, entities::model_cached::{ModelCached, ModelCachedConf}};
+use crate::{conf::conf::Conf, db::api::{ApiClient, Db}, entities::{Bounds, model_cached::{ModelCached, ModelCachedConf}}};
 
 mod entities;
 mod conf;
@@ -47,8 +47,8 @@ fn main() {
         111.84, 112.58, 113.32, 114.06, 114.8, 115.54, 116.28, 117.02, 117.76, 118.5, 119.24,
         119.98, 120.72, 121.46, 122.2, 122.94, 123.68, 124.42, 125.16, 125.9, 126.5, 127.1, 127.7,
         128.3, 128.9, 129.5, 130.1, 130.7, 131.3, 131.9, 132.5, 133.1, 133.7, 134.3, 134.9, 135.5,
-    ];
-    let bounds = Bounds::from_array(&physical_frames, 0.).unwrap();*/
+    ];*/
+    let bounds = Bounds::from_array(&frames, 0.).unwrap();
     let cache_dir: PathBuf = ("assets/cache/".to_owned() + &conf.model.name).into();
     let model_dir: PathBuf = ("assets/model/".to_owned() + &conf.model.name).into();
     let thread_pool = Arc::new(ThreadPool::new(&dbg, Some(conf.thread_pool.size)));

@@ -132,6 +132,22 @@ impl Bounds {
     pub fn len_qnt(&self) -> usize {
         self.values.len()
     }
+    /// Шпагноуты
+    #[allow(unused)]
+    pub fn frames(&self) -> Vec<f64> {
+        let mut res: Vec<_> = self.values.iter().filter_map(|v| v.start()).collect();
+        self.values.last().map(|v| res.push(v.end().expect("Bounds frames error: no last frame!")));
+        assert_eq!(res.len(), self.values.len() + 1);
+        res
+    }
+    /// Центры шпаций
+    #[allow(unused)]
+    pub fn centers(&self) -> Vec<f64> {
+        let res: Vec<_> = self.values.iter().filter_map(|v| v.center()).collect();
+        assert_eq!(res.len(), self.values.len());
+        res
+    }
+
  /*   /// Длинна элемента разбиения
     pub fn delta(&self) -> f64 {
         self.values
