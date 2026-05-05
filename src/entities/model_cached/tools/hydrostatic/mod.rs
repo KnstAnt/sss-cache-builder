@@ -16,8 +16,7 @@ use std::time::Instant;
 
 use crate::entities::model_cached::load_stl;
 
-pub fn calculate_hydrostatic(mesh: &TriMesh, dx: f64, heel: f64, trim: f64, draught: f64) -> (f64, Vec3) {
-    let center = Vec3::new(dx, 0., 0.);
+pub fn calculate_hydrostatic(mesh: &TriMesh, center: Vec3, heel: f64, trim: f64, draught: f64) -> (f64, Vec3) {
     let isometry = position(&center, heel, trim, draught).inverse();
     let local_point = isometry.transform_point(Vec3::ZERO); 
     let local_normal = isometry.transform_vector(Vec3::Z).normalize(); 
@@ -28,8 +27,7 @@ pub fn calculate_hydrostatic(mesh: &TriMesh, dx: f64, heel: f64, trim: f64, drau
     (hydrostatics.volume, center_of_buoyancy)
 }
 
-pub fn calculate_waterline(mesh: &TriMesh, dx: f64, heel: f64, trim: f64, draught: f64) -> (f64, Vec3) {
-    let center: Vec3 = Vec3::new(dx, 0., 0.);
+pub fn calculate_waterline(mesh: &TriMesh, center: Vec3, heel: f64, trim: f64, draught: f64) -> (f64, Vec3) {
     let isometry = position(&center, heel, trim, draught).inverse();
     let local_point = isometry.transform_point(Vec3::ZERO); 
     let local_normal = isometry.transform_vector(Vec3::Z).normalize(); 
@@ -45,8 +43,7 @@ pub fn calculate_waterline(mesh: &TriMesh, dx: f64, heel: f64, trim: f64, draugh
     (area, isometry.inverse_transform_point(area_center))
 }
 
-pub fn calculate_inertia(mesh: &TriMesh, dx: f64, heel: f64, trim: f64, draught: f64) -> (f64, f64) {
-    let center: Vec3 = Vec3::new(dx, 0., 0.);
+pub fn calculate_inertia(mesh: &TriMesh, center: Vec3, heel: f64, trim: f64, draught: f64) -> (f64, f64) {
     let isometry = position(&center, heel, trim, draught).inverse();
     let local_point = isometry.transform_point(Vec3::ZERO); 
     let local_normal = isometry.transform_vector(Vec3::Z).normalize(); 

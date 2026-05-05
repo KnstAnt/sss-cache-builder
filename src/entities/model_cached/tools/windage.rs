@@ -1,12 +1,16 @@
-use parry3d_f64::math::Vec3;
-use sal_core::error::Error;
+use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+use parry3d_f64::{math::Vec3, shape::TriMesh};
+use sal_core::error::Error;
+use bincode::{Decode, Encode};
+
+#[derive(Debug, Clone, Encode, Decode)]
 pub struct WindageColumn {
     /// Список неперекрывающихся интервалов (z_min, z_max) в этой X-полосе
     pub intervals: Vec<(f64, f64)>,
 }
 
+#[derive(Debug, Encode, Decode)]
 pub struct WindageProfile {
     pub x_min: f64,
     pub step: f64,
@@ -18,7 +22,7 @@ pub struct WindageProfile {
 
 impl WindageProfile {
     pub fn new(
-        mesh: &parry3d_f64::shape::TriMesh,
+        mesh: Arc<TriMesh>,
         midel_dx: f64,
         draught_min: f64,
         lbp: f64,
@@ -156,12 +160,11 @@ impl WindageProfile {
     }
 
     /// Расчет площади проекции по правилу дополнительного запаса плавучести в носу
-        pub fn bow_area(&self, draught: f64, trim_deg: f64) -> Result<f64, Error> {
+    pub fn bow_area(&self, draught: f64, trim_deg: f64) -> Result<f64, Error> {
         let trim_tan = trim_deg.to_radians().tan();
 
         // 1. Определяем физические границы судна по LBP.
         // Если мидель — это центр LBP, то:
-        let stern_x = self.midel_dx - self.lbp / 2.0; // Корма
         let bow_x = self.midel_dx + self.lbp / 2.0;   // Нос
         
         // Граница 15% зоны от носового перпендикуляра в сторону кормы

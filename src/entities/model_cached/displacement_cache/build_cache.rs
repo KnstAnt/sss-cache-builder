@@ -1,3 +1,4 @@
+use parry3d_f64::math::Vec3;
 use parry3d_f64::shape::TriMesh;
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{
@@ -116,13 +117,14 @@ impl BuildDisplacementCache {
                 //    println!("Starting thread {thread_name}");
                     let handle = scheduler
                         .spawn_named(thread_name, move || {
+                            let center = Vec3::new(dx, 0., 0.);
                             draft_results.push((
                                 heel,
                                 trim,
                                 draught,
-                                calculate_hydrostatic(&mesh, dx, heel, trim, draught),                              
-                                calculate_waterline(&mesh, dx, heel, trim, draught),
-                                calculate_inertia(&mesh, dx, heel, trim, draught),
+                                calculate_hydrostatic(&mesh, center, heel, trim, draught),                              
+                                calculate_waterline(&mesh, center, heel, trim, draught),
+                                calculate_inertia(&mesh, center, heel, trim, draught),
                             ));
                             Ok(())
                         })

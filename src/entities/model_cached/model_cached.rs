@@ -1,4 +1,4 @@
-use crate::entities::model_cached::{build_cache::BuildDisplacementCache, displacement_bound_cache::build_cache::BuildDisplacementBoundCache};
+use crate::entities::model_cached::{build_cache::BuildDisplacementCache, compartment_cache::build_cache::BuildCompartmentCache, displacement_bound_cache::build_cache::BuildDisplacementBoundCache};
 
 use super::*;
 use core::f64;
@@ -43,8 +43,7 @@ pub struct ModelCached {
     /// - cache for bounds of compartments, [qnt_bounds, [code, cache]]
     compartments_bounded: IndexMap<usize, IndexMap<String, Arc<RwLock<CompartmentBoundCache>>>>,
     /// Композитные отсеки трюмов, разбиение по шпациям
-    hold_compartments_bounded:
-        IndexMap<usize, IndexMap<String, Arc<RwLock<HoldCompartmentBoundCache>>>>,
+    hold_compartments_bounded:  IndexMap<usize, IndexMap<String, Arc<RwLock<HoldCompartmentBoundCache>>>>,
     thread_pool: Arc<ThreadPool>,
 }
 //
@@ -80,22 +79,6 @@ impl ModelCached {
             conf.bounds,
         Arc::clone(&thread_pool),      
         );
-
-
-        let windage_shape = Arc::new(RwLock::new(AreaShape::new_uninit(
-            &dbg,
-            conf.model_dir.clone().join(PathBuf::from("hull.stl")),
-            Some(conf.model_dir.clone().join(PathBuf::from("additionals"))),
-            model_x,
-            conf.model_scale,
-        )));
-        let windage_area = WindageArea::new(
-            &dbg,
-            windage_shape.clone(),
-            conf.cache_dir.clone(),
-            conf.draught_min,
-            Arc::clone(&thread_pool),
-        );
         let path = conf.model_dir.clone().join(PathBuf::from("compartments"));
         let pathes: Vec<_> = match std::fs::read_dir(&path) {
             Ok(dir) => dir
@@ -113,71 +96,37 @@ impl ModelCached {
                 );
                 Vec::new()
             }
-        };
+        };        
         let compartments = pathes
             .iter()
             .filter(|path: &&PathBuf| path.file_name().is_some())
             .filter_map(|path| {
-                let name = path.file_stem()?.to_str()?.to_string();
-                let shape = Arc::new(RwLock::new(DisplacementShape::new_uninit(
-                    &dbg,
-                    path.clone(),
-                    None,
-                    conf.model_scale,
-                )));
-                displacement_shapes.insert(name.clone(), shape.clone());
+                let name = path.file_stem()?;
+                let mesh = load_stl(&conf.model_dir.clone().join(PathBuf::from(name)))
+                    .scaled(Vec3::new(conf.model_scale, conf.model_scale, conf.model_scale));
                 Some((
                     name.clone(),
-                    Arc::new(RwLock::new(CompartmentCache::new(
+                    BuildCompartmentCache::new(
                         &dbg,
-                        shape.clone(),
-                        conf.cache_dir.clone().join(PathBuf::from("compartments")),
-                        name.clone(),
+                        Arc::new(mesh),
                         conf.compartment_heel_steps.clone(),
                         conf.compartment_trim_steps.clone(),
                         conf.compartment_level_step_qnt,
                         Arc::clone(&thread_pool),
-                    ))),
-                ))
+                    )))              
             })
             .collect();
-        let damaged_compartments = pathes
-            .iter()
-            .filter(|path: &&PathBuf| path.file_name().is_some())
-            .filter_map(|path| {
-                let Some(name) = path.file_stem() else {
-                    return None;
-                };
-                let Some(name) = name.to_str() else {
-                    return None;
-                };
-                let name = name.to_string();
-                let shape = Arc::new(RwLock::new(DisplacementShape::new_uninit(
-                    &dbg,
-                    path.clone(),
-                    Some(conf.model_x),
-                    conf.model_scale,
-                )));
-                displacement_shapes.insert(name.clone() + "_damaged", shape.clone());
-                Some((
-                    name.clone(),
-                    Arc::new(RwLock::new(DamagedCompartmentCache::new(
-                        &dbg,
-                        shape.clone(),
-                        conf.cache_dir
-                            .clone()
-                            .join(PathBuf::from("damaged_compartments")),
-                        name.clone(),
-                        conf.hull_heel_steps.clone(),
-                        conf.hull_trim_steps.clone(),
-                        conf.hull_draught_min,
-                        conf.hull_draught_max,
-                        conf.hull_draught_step,
-                        Arc::clone(&thread_pool),
-                    ))),
-                ))
-            })
-            .collect();
+        let windage_area = WindageArea::new(
+            &dbg,
+            Arc::clone(&hull),
+            conf.model_x,
+            conf.draught_min,
+            conf.ship_length_lbp,
+            10000,
+        );
+
+
+ 
         let model_cached = Self {
             dbg: dbg.clone(),
             ship_length_lbp: conf.ship_length_lbp,
