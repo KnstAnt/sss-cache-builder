@@ -10,16 +10,7 @@ use crate::entities::{Bounds, model_cached::*};
 pub struct WindageArea {
     dbg: Dbg,
     cache_dir: PathBuf,
-    /// Model representation used for cache calculation.
-    shape: Arc<RwLock<AreaShape>>,
-    /// - cache for windage area
-    windage_area: Option<AreaCache>,
-    /// - cache for bow area
-    bow_area: Option<BowAreaCache>,
-    /// Cache read from `self.file_path`.
-    values: Option<Vec<f64>>, //распределение
-    draught_min: f64,
-    thread_pool: Arc<ThreadPool>,
+    windage: WindageProfile,
 }
 //
 //

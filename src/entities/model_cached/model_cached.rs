@@ -1,8 +1,9 @@
-use crate::entities::{Bounds, model_cached::{AreaShape, CompartmentBoundCache, CompartmentCache, DamagedCompartmentCache, DisplacementBoundCache, DisplacementCache, DisplacementShape, HoldCompartmentBoundCache, HoldCompartmentCache, Shape, WindageArea}};
+use crate::entities::model_cached::{build_cache::BuildDisplacementCache, displacement_bound_cache::build_cache::BuildDisplacementBoundCache};
 
-use super::{LocalCache, ModelCachedConf};
+use super::*;
 use core::f64;
 use indexmap::IndexMap;
+use parry2d_f64::math::Vec3;
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{
     sync::{RwLock, Stack},
@@ -26,12 +27,9 @@ pub struct ModelCached {
     bounds_level_step: f64,
     /// Directory containing [super::ModelCached] caches.
     cache_dir: PathBuf,
-    /// Privides access to structure of the 3D element
-    displacement_shapes: IndexMap<String, Arc<RwLock<DisplacementShape>>>,
-    windage_shape: Arc<RwLock<AreaShape>>,
     /// Provides a number of calculations:
     /// - cache for model, [heel, trim, draught, volume, x, y, z, area, x, y, z, l_x, l_y ]
-    displacement: DisplacementCache,
+    displacement: BuildDisplacementCache,
     /// - cache for compartments, [index of compartments, [heel, trim, level, volume, x, y, z, i_x, i_y ]]
     compartments: IndexMap<String, Arc<RwLock<CompartmentCache>>>,
     /// Композитные отсеки трюмов
@@ -60,17 +58,30 @@ impl ModelCached {
         thread_pool: Arc<ThreadPool>,
     ) -> Result<Self, Error> {
         let dbg = Dbg::new(parent, "ModelCached");
-        let error = Error::new(&dbg, "new");
-        let mut displacement_shapes: IndexMap<String, Arc<RwLock<DisplacementShape>>> =
-            IndexMap::new();
-        let model_x = Some(conf.model_x);
-        let displacement_shape = Arc::new(RwLock::new(DisplacementShape::new_uninit(
+        let error = Error::new(&dbg, "new");     
+        let hull = load_stl(&conf.model_dir.clone().join(PathBuf::from("hull.stl")))
+            .scaled(Vec3::new(conf.model_scale, conf.model_scale, conf.model_scale));
+        let hull = Arc::new(hull);
+        let displacement = BuildDisplacementCache::new(
             &dbg,
-            conf.model_dir.clone().join(PathBuf::from("hull.stl")),
-            model_x,
-            conf.model_scale,
-        )));
-        displacement_shapes.insert("hull".to_owned(), displacement_shape.clone());
+            Arc::clone(&hull),
+            conf.model_x,
+            conf.hull_heel_steps,
+            conf.hull_trim_steps,
+            conf.hull_draught_min,
+            conf.hull_draught_max,
+            conf.hull_draught_step,
+            Arc::clone(&thread_pool)
+        );
+        let bound_displacement = BuildDisplacementBoundCache::new(
+            &dbg,
+            Arc::clone(&hull),
+            conf.bounds_level_step,
+            conf.bounds,
+        Arc::clone(&thread_pool),      
+        );
+
+
         let windage_shape = Arc::new(RwLock::new(AreaShape::new_uninit(
             &dbg,
             conf.model_dir.clone().join(PathBuf::from("hull.stl")),
@@ -319,7 +330,7 @@ impl ModelCached {
         let error = Error::new(&self.dbg, "rebuild_hull");
         let mut errors = Vec::new();
         // Считаем кэши, они сами по себе многопоточны, поэтому делить на потоки нет смысла
-        if let Err(error) = self.displacement.rebuild() {
+        if let Err(error) = self.displacement.calculate() {
             errors.push(("displacement".to_owned(), error));
         }
         let displacement_shape = self
@@ -332,7 +343,6 @@ impl ModelCached {
             self.cache_dir.clone().join("disp_bounded"),
             self.bounds_level_step,
             self.model_x,
-            bounds.clone(),
             Arc::clone(&self.thread_pool),
         );
         displacement_bound
