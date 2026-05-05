@@ -116,6 +116,9 @@ impl ModelCached {
                     )))              
             })
             .collect();
+
+        let bound_compartments = 
+
         let windage_area = WindageArea::new(
             &dbg,
             Arc::clone(&hull),
@@ -159,70 +162,6 @@ impl ModelCached {
         };
         //   dbg!(model_cached.compartments.len());
         Ok(model_cached)
-    }
-    /// reload all shapes
-    pub fn reload_shapes(&mut self) -> Result<(), Error> {
-        let error = Error::new(&self.dbg, "reload_shapes");
-        let mut errors = Vec::new();
-        let mut tasks: Vec<JoinHandle<_>> = vec![];
-        let task_results = Arc::new(Stack::new());
-        let scheduler = self.thread_pool.scheduler();
-        // Сначала считаем модели в разных потоках
-        for (name, shape) in &self.displacement_shapes {
-            let shape = shape.clone();
-            let task_results = task_results.clone();
-            let thread_name = format!("{}.reload_shapes displacement_shape {name}", &self.dbg);
-            //    log::trace!("Starting thread {thread_name}");
-            let handle = scheduler
-                .spawn_named(thread_name, move || {
-                    let mut guard = shape.write();
-                    task_results.push(guard.init());
-                    Ok(())
-                })
-                .map_err(|err| {
-                    error.pass_with(format!("spawn task displacement_shape {name}"), err)
-                });
-            match handle {
-                Ok(task) => tasks.push(task),
-                Err(err) => errors.push(err),
-            };
-        }
-        {
-            let shape = self.windage_shape.clone();
-            let task_results = task_results.clone();
-            let thread_name = format!("{}.reload_shapes windage_shape", &self.dbg);
-            //    log::trace!("Starting thread {thread_name}");
-            let handle = scheduler
-                .spawn_named(thread_name, move || {
-                    let mut guard = shape.write();
-                    task_results.push(guard.init());
-                    Ok(())
-                })
-                .map_err(|err| {
-                    error.pass_with("spawn task area_shape".to_string(), err.to_string())
-                });
-            match handle {
-                Ok(task) => tasks.push(task),
-                Err(err) => errors.push(err),
-            };
-        }
-        for task in tasks {
-            //   log::trace!("join thread {}", task.name());
-            if let Err(err) = task.join() {
-                let error = error.pass_with("task join", err.to_string());
-                log::error!("{}", error);
-                errors.push(error);
-            }
-        }
-        if !errors.is_empty() {
-            return Err(error.pass_with(
-                "rebuild_caches",
-                errors
-                    .iter()
-                    .fold(String::new(), |acc, err| acc + &format!(" error: {err}")),
-            ));
-        }
-        Ok(())
     }
     /// Пересчет композитных отсеков трюма. Каждый расчет список таких отсеков обновляется
     /// и пересчитывается. К имеющимся отсекам добавляются новые. Старые не удаляются.

@@ -18,10 +18,8 @@ impl Slice {
         if z_levels.is_empty() {
             return Vec::new();
         }
-
         // 1. Считаем начальный объем для самой нижней точки (база)
         let mut current_v = self.calculate_single_volume(z_levels[0]);
-
         // 2. Параллельно вычисляем приращения (dV) для каждого слоя
         let layer_volumes: Vec<f64> = z_levels
             .par_windows(2)
