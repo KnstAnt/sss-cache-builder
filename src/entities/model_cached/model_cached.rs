@@ -47,9 +47,7 @@ impl ModelCached {
     ) -> Result<Self, Error> {
         let dbg = Dbg::new(parent, "ModelCached");
         let error = Error::new(&dbg, "new");
-        let hull = load_stl(&conf.model_dir.clone().join(PathBuf::from("hull.stl"))).scaled(
-            Vec3::new(conf.model_scale, conf.model_scale, conf.model_scale),
-        );
+        let hull = load_stl(&conf.model_dir.clone().join(PathBuf::from("hull.stl")), conf.model_scale);
         let hull = Arc::new(hull);
         let displacement = BuildDisplacementCache::new(
             &dbg,
@@ -87,47 +85,37 @@ impl ModelCached {
                 Vec::new()
             }
         };
-        let compartments = pathes
+        let mut compartments = IndexMap::new();
+        let mut compartments_bounded = IndexMap::new();
+        for path in pathes
             .iter()
             .filter(|path: &&PathBuf| path.file_name().is_some())
-            .filter_map(|path| {
-                let name = path.file_stem()?;
-                let mesh = load_stl(&conf.model_dir.clone().join(PathBuf::from(name))).scaled(
-                    Vec3::new(conf.model_scale, conf.model_scale, conf.model_scale),
-                );
-                Some((
-                    name.to_str().unwrap().to_string(),
-                    BuildCompartmentCache::new(
-                        &dbg,
-                        Arc::new(mesh),
-                        conf.compartment_heel_steps.clone(),
-                        conf.compartment_trim_steps.clone(),
-                        conf.compartment_level_step_qnt,
-                        Arc::clone(&thread_pool),
-                    ),
-                ))
-            })
-            .collect();
-        let compartments_bounded = pathes
-            .iter()
-            .filter(|path: &&PathBuf| path.file_name().is_some())
-            .filter_map(|path| {
-                let name = path.file_stem()?;
-                let mesh = load_stl(&conf.model_dir.clone().join(PathBuf::from(name))).scaled(
-                    Vec3::new(conf.model_scale, conf.model_scale, conf.model_scale),
-                );
-                Some((
-                    name.to_str().unwrap().to_string(),
-                    BuildDisplacementBoundCache::new(
-                        &dbg,
-                        Arc::new(mesh),
-                        conf.bounds_level_step,
-                        bounds.clone(),
-                        Arc::clone(&thread_pool),
-                    ),
-                ))
-            })
-            .collect();
+        {
+            let Some(name) = path.file_stem() else { continue };
+            let name = name.to_str().unwrap().to_string();
+            let mesh = Arc::new(load_stl(&path, conf.model_scale));
+            compartments.insert(
+                name.clone(),
+                BuildCompartmentCache::new(
+                    &dbg,
+                    Arc::clone(&mesh),
+                    conf.compartment_heel_steps.clone(),
+                    conf.compartment_trim_steps.clone(),
+                    conf.compartment_level_step_qnt,
+                    Arc::clone(&thread_pool),
+                ),
+            );
+            compartments_bounded.insert(
+                name.clone(),
+                BuildDisplacementBoundCache::new(
+                    &dbg,
+                    Arc::clone(&mesh),
+                    conf.bounds_level_step,
+                    bounds.clone(),
+                    Arc::clone(&thread_pool),
+                ),
+            );
+        }
         let windage_area = WindageArea::new(
             &dbg,
             Arc::clone(&hull),

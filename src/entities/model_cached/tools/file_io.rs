@@ -2,9 +2,9 @@ use obj::{Obj, ObjData};
 use parry3d_f64::glamx::DQuat;
 use parry3d_f64::math::*;
 use parry3d_f64::shape::{TriMesh, TriMeshFlags};
+use sal_core::error::Error;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-
 
 pub fn load_obj(path: &Path) -> TriMesh {
     let Obj {
@@ -25,8 +25,10 @@ pub fn load_obj(path: &Path) -> TriMesh {
     TriMesh::with_flags(vertices, indices, TriMeshFlags::all()).unwrap()
 }
 
-pub fn load_stl(path: &Path) -> TriMesh {
-    let file = std::fs::File::open(path).unwrap();
+pub fn load_stl(path: &Path, scale: f64) -> TriMesh {
+    let file = std::fs::File::open(path)
+        .map_err(|err| Error::from(format!("file open error:{:?}, path:{:?}", err, path)))
+        .unwrap();
     let mut reader = std::io::BufReader::new(file);
     let stl = stl_io::read_stl(&mut reader).unwrap();
     let vertices = stl
@@ -45,7 +47,10 @@ pub fn load_stl(path: &Path) -> TriMesh {
             ]
         })
         .collect::<Vec<_>>();
-    TriMesh::with_flags(vertices, indices, TriMeshFlags::all()).unwrap()
+    let scale = 1. / scale;
+    TriMesh::with_flags(vertices, indices, TriMeshFlags::all())
+        .unwrap()
+        .scaled(Vec3::new(scale, scale, scale))
 }
 
 pub fn write_stl(path: &PathBuf, mesh: &TriMesh) {

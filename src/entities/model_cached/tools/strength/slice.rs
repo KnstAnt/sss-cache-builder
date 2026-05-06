@@ -89,7 +89,7 @@ impl Slice {
     }
     ///
     pub fn calculate_displacements_by_steps(&self, step: f64) -> Vec<(f64, f64)> {
-        if step < 0. {
+        if step < 0. || self.points.is_empty() {
             return Vec::new();
         }
         // мин и макс осадки
@@ -99,6 +99,7 @@ impl Slice {
             .fold((f64::MAX, f64::MIN), |(draught_min, draught_max), p| {
                 (draught_min.min(p.z), draught_max.max(p.z))
             });
+        println!("{draught_min}, {draught_max}");
         // расчет объема слоя
         let slice_volume = |z_low: f64, z_high: f64| {
             assert!(z_low < z_high);
@@ -155,6 +156,7 @@ impl Slice {
         let mut draught = draught_min;
         while draught + current_step < draught_max {
             layer_volumes.push((draught + current_step, slice_volume(draught, draught + current_step)));
+     //       dbg!(draught, current_step);
             draught += current_step;
             current_step = (current_step*1.5).min(step);
         }

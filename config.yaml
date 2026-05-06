@@ -11,6 +11,7 @@ api:
 #
 model:
     name: "sofia"
+    midel_x: 65.25
 #
 # Thread-pool params
 thread-pool:

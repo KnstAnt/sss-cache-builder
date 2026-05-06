@@ -15,6 +15,8 @@ fn main() {
     DebugSession::new()
         .filter(LogLevel::Trace)
         .module("api_tools", LogLevel::Error)
+        .module("sal_sync", LogLevel::Error)
+        .module("ena", LogLevel::Error)
         .init();
     let dbg = Dbg::own("main");
     info!("starting up");
@@ -41,7 +43,7 @@ fn main() {
     let cache_dir: PathBuf = ("assets/cache/".to_owned() + &conf.model.name).into();
     let model_dir: PathBuf = ("assets/model/".to_owned() + &conf.model.name).into();
     let thread_pool = Arc::new(ThreadPool::new(&dbg, Some(conf.thread_pool.size)));
-    let mut model_cached = ModelCached::new(
+    let model_cached = ModelCached::new(
         &dbg,
         ModelCachedConf {
             model_dir,
