@@ -4,10 +4,7 @@ use sal_sync::{
     sync::Stack,
     thread_pool::{JoinHandle, ThreadPool},
 };
-use std::{
-    collections::VecDeque,
-    sync::Arc,
-};
+use std::{collections::VecDeque, sync::Arc};
 
 use crate::entities::{Bounds, model_cached::HullSlicer};
 
@@ -43,7 +40,7 @@ impl BuildDisplacementBoundCache {
         }
     }
     /// Построение кэшей
-    pub fn build(self) -> (Vec<(f64, Vec<(f64, f64)>)>, Vec<Error>) {
+    pub fn build(&self) -> (Vec<(f64, Vec<(f64, f64)>)>, Vec<Error>) {
         log::info!("{}.build | Starting build", &self.dbg);
         let (results, errors) = self._build();
         let mut vec_results = Vec::new();
@@ -62,12 +59,7 @@ impl BuildDisplacementBoundCache {
         (vec_results, vec_errors)
     }
     //
-    pub fn _build(
-        self,
-    ) -> (
-        Arc<Stack<(f64, Vec<(f64, f64)>)>>,
-        Arc<Stack<Error>>,
-    ) {
+    pub fn _build(&self) -> (Arc<Stack<(f64, Vec<(f64, f64)>)>>, Arc<Stack<Error>>) {
         log::info!("{}._build | Starting _build", &self.dbg);
         let error = Error::new(&self.dbg, "_build");
         let mut tasks: VecDeque<JoinHandle<_>> = VecDeque::new();
@@ -86,18 +78,24 @@ impl BuildDisplacementBoundCache {
             let results = results.clone();
             let _errors = errors.clone();
             let _error = error.clone();
-            let center_x = (slice.x_start + slice.x_end)/2.;
+            let center_x = (slice.x_start + slice.x_end) / 2.;
             let level_step = self.level_step;
-            let thread_name = format!("BuildDisplacementBoundCache displacement_by_steps slice_{:.3}", center_x);
+            let thread_name = format!(
+                "BuildDisplacementBoundCache displacement_by_steps slice_{:.3}",
+                center_x
+            );
             log::info!("{}.build | Starting thread {thread_name}", &self.dbg);
-          //  println!("{}.build | Starting thread {thread_name}", &self.dbg);
+            //  println!("{}.build | Starting thread {thread_name}", &self.dbg);
             let handle = scheduler
                 .spawn_named(thread_name, move || {
                     results.push((center_x, slice.calculate_displacements_by_steps(level_step)));
                     Ok(())
                 })
                 .map_err(|err| {
-                    error.pass_with(format!("spawn task center_x:{:?}", center_x), err.to_string())
+                    error.pass_with(
+                        format!("spawn task center_x:{:?}", center_x),
+                        err.to_string(),
+                    )
                 });
             match handle {
                 Ok(task) => tasks.push_back(task),
@@ -111,5 +109,5 @@ impl BuildDisplacementBoundCache {
             }
         }
         (results, errors)
-    }       
+    }
 }

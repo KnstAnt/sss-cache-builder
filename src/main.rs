@@ -20,18 +20,7 @@ fn main() {
     info!("starting up");
     let conf = "./config.yaml";
     let conf = Conf::new(&dbg, conf);
-    let mut db = Db::new(&dbg, 
-        conf.api.params.ship_id.clone(),
-        conf.api.params.project_id.clone(),        
-        ApiClient::new(
-            &dbg,
-            conf.api.address.database.clone(),
-            conf.api.address.host.clone(),
-            conf.api.address.port.clone(),
-        ));
-    let frames = db.frames().unwrap();
-    let compartments_max = db.compartments_max().unwrap();
- /*   let physical_frames: [f64; 196] = [
+    let physical_frames: [f64; 196] = [
         -3.6, -3.0, -2.4, -1.8, -1.2, -0.6, 0.0, 0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.2, 4.8, 5.4, 6.0,
         6.7, 7.4, 8.1, 8.8, 9.5, 10.2, 10.9, 11.6, 12.3, 13.0, 13.7, 14.4, 15.1, 15.8, 16.5, 17.2,
         17.9, 18.6, 19.34, 20.08, 20.82, 21.56, 22.3, 23.04, 23.78, 24.52, 25.26, 26.0, 26.74,
@@ -47,8 +36,8 @@ fn main() {
         111.84, 112.58, 113.32, 114.06, 114.8, 115.54, 116.28, 117.02, 117.76, 118.5, 119.24,
         119.98, 120.72, 121.46, 122.2, 122.94, 123.68, 124.42, 125.16, 125.9, 126.5, 127.1, 127.7,
         128.3, 128.9, 129.5, 130.1, 130.7, 131.3, 131.9, 132.5, 133.1, 133.7, 134.3, 134.9, 135.5,
-    ];*/
-    let bounds = Bounds::from_array(&frames, 0.).unwrap();
+    ];
+    let bounds = Bounds::from_array(&physical_frames, 0.).unwrap();
     let cache_dir: PathBuf = ("assets/cache/".to_owned() + &conf.model.name).into();
     let model_dir: PathBuf = ("assets/model/".to_owned() + &conf.model.name).into();
     let thread_pool = Arc::new(ThreadPool::new(&dbg, Some(conf.thread_pool.size)));
@@ -79,6 +68,7 @@ fn main() {
             bounds_level_step: 0.1,
             compartment_level_step_qnt: 10,
         },
+        bounds,
         Arc::clone(&thread_pool),
     )
     .unwrap();
@@ -168,11 +158,5 @@ fn main() {
         .collect();
 */
 
-    model_cached.reload_shapes().unwrap();
-    model_cached
-        .rebuild_hull(&bounds)
-        .unwrap();    
-    model_cached
-        .rebuild_compartments(&bounds, compartments_max)
-        .unwrap();
+    model_cached.rebuld().unwrap();
 }

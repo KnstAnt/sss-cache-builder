@@ -8,6 +8,8 @@ use std::{
     collections::VecDeque,
     sync::{Arc, atomic::{AtomicBool, Ordering}},
 };
+
+use crate::entities::Bounds;
 ///
 /// Provides logic to calculate and store cache used by [super::CompartmentBoundCache].
 pub struct BuildCompartmentBoundCache {
@@ -33,15 +35,14 @@ impl BuildCompartmentBoundCache {
         debug_assert!(level_step > 0.);
         Self {
             dbg: Dbg::new(parent, "BuildCompartmentBoundCache"),
-            shape: shape.clone(),
+            mesh,
             level_step,
             bounds,
             thread_pool,
-            exit,
         }
     }
     /// Построение кэшей со сдвигом основания в 0 по высоте
-    pub fn build(self) -> (Vec<(f64, Option<Vec<(f64, f64)>>)>, Vec<Error>) {
+    pub fn build(&self) -> (Vec<(f64, Option<Vec<(f64, f64)>>)>, Vec<Error>) {
         log::info!(
             "{}.build | Starting build",
             &self.dbg

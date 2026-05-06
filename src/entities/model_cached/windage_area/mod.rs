@@ -41,7 +41,7 @@ impl WindageArea {
           }
     }
     /// пересчет для заданных значений
-    pub fn build(&mut self) -> WindageProfile {
+    pub fn build(&self) -> WindageProfile {
         WindageProfile::new(
             Arc::clone(&self.mesh), 
             self.midel_x, 

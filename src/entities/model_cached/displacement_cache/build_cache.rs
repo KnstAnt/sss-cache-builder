@@ -60,7 +60,7 @@ impl BuildDisplacementCache {
     ///
     /// Creates and starts worker for [DisplacementCache::calculate].
     /// results: [[heel, trim, draught, volume, vx, vy, vz, area, ax, ay, az, ix, iy, wx, wy]]
-    pub fn build(self) -> (Vec<Vec<f64>>, Vec<Error>) {
+    pub fn build(&self) -> (Vec<Vec<f64>>, Vec<Error>) {
         log::info!("{}.build | Starting build", &self.dbg);
         let error = Error::new(&self.dbg, "build");
         let mut tasks: VecDeque<JoinHandle<_>> = VecDeque::new();

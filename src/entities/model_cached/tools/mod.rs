@@ -1,16 +1,16 @@
 mod file_io;
 mod hydrostatic;
-mod math;
 mod strength;
 mod windage;
 
 pub use file_io::*;
 pub use hydrostatic::*;
-pub use math::*;
 use parry3d_f64::math::Vec3;
 use parry3d_f64::shape::TriMesh;
 pub use strength::*;
 pub use windage::*;
+
+use crate::entities::Position;
 
 /// полный объем модели
 pub fn properties(mesh: &TriMesh, density: f64) -> (f64, Position) {

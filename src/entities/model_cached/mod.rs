@@ -6,19 +6,15 @@ mod model_cached;
 mod windage_area;
 mod draught;
 mod tools;
-mod displacement_cache;
-mod displacement_bound_cache;
-mod compartment_cache;
-mod compartment_bound_cache;
+pub mod displacement_cache;
+pub mod displacement_bound_cache;
+pub mod compartment_cache;
+//mod compartment_bound_cache;
 
 pub use tools::*;
 pub use model_cached_conf::*;
 pub(crate) use model_cached::*;
 pub(crate) use windage_area::*;
-pub(crate) use displacement_cache::*;
-pub(crate) use displacement_bound_cache::*;
-pub(crate) use compartment_cache::*;
-pub(crate) use compartment_bound_cache::*;
 
 
 

@@ -48,7 +48,7 @@ impl BuildCompartmentCache {
     /// Creates and starts worker for [CompartmentCache::calculate].
     ///
     /// results: [[heel, trim, draught, volume, vx, vy, vz, ix, iy, max_moment, max_volume]]
-    pub fn build(self) -> (Vec<Vec<f64>>, Vec<Error>) {
+    pub fn build(&self) -> (Vec<Vec<f64>>, Vec<Error>) {
         //  dbg!("BuildCompartmentCache build begin");
         log::info!("{}.build | Starting build", &self.dbg);
         let mut tasks: VecDeque<JoinHandle<_>> = VecDeque::new();
