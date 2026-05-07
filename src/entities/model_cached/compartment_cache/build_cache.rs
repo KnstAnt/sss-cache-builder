@@ -5,11 +5,10 @@ use sal_sync::{
     thread_pool::{JoinHandle, ThreadPool},
 };
 use std::{
-    collections::VecDeque,
-    sync::Arc,
+    collections::VecDeque, path::{Path, PathBuf}, sync::Arc
 };
 
-use crate::entities::{Position, model_cached::{calculate_hydrostatic, calculate_inertia, compartment_center, draught_steps, properties}};
+use crate::entities::{Position, model_cached::{calculate_hydrostatic, calculate_inertia, compartment_center, draught_steps, properties, save}};
 
 ///
 /// Provides logic to calculate and store cache used by [super::CompartmentCache].
@@ -48,7 +47,7 @@ impl BuildCompartmentCache {
     /// Creates and starts worker for [CompartmentCache::calculate].
     ///
     /// results: [[heel, trim, draught, volume, vx, vy, vz, ix, iy, max_moment, max_volume]]
-    pub fn build(&self) -> (Vec<Vec<f64>>, Vec<Error>) {
+    fn build(&self) -> (Vec<Vec<f64>>, Vec<Error>) {
         //  dbg!("BuildCompartmentCache build begin");
         log::info!("{}.build | Starting build", &self.dbg);
         let mut tasks: VecDeque<JoinHandle<_>> = VecDeque::new();
@@ -193,4 +192,23 @@ impl BuildCompartmentCache {
         }
         (vec_results, errors)
     }
+    //
+    pub fn rebuld_and_save(&self, dir_path: &PathBuf) -> Result<(), Error> {
+        let error = Error::new(&self.dbg, format!("rebuld_and_save"));
+        let (result, errors) = self.build();
+        if !errors.is_empty() {
+            return Err(error.pass(
+                errors.iter().fold(String::new(), |acc, err| {
+                    format!("{acc}\n\tIn error: {err}")
+                }),
+            ));
+        } else if let Err(err) = save(
+            &self.dbg,
+            &dir_path.join("disp"),
+            result,
+        ) {
+            return Err(error.pass_with("save data", err));
+        }   
+        Ok(()) 
+    }    
 }

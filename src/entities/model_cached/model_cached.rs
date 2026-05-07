@@ -22,6 +22,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 pub struct ModelCached {
     dbg: Dbg,
     cache_dir: PathBuf,
+    bounds: Bounds,
     /// Provides a number of calculations:
     /// - cache for model, [heel, trim, draught, volume, x, y, z, area, x, y, z, l_x, l_y ]
     displacement: BuildDisplacementCache,
@@ -47,7 +48,10 @@ impl ModelCached {
     ) -> Result<Self, Error> {
         let dbg = Dbg::new(parent, "ModelCached");
         let error = Error::new(&dbg, "new");
-        let hull = load_stl(&conf.model_dir.clone().join(PathBuf::from("hull.stl")), conf.model_scale);
+        let hull = load_stl(
+            &conf.model_dir.clone().join(PathBuf::from("hull.stl")),
+            conf.model_scale,
+        );
         let hull = Arc::new(hull);
         let displacement = BuildDisplacementCache::new(
             &dbg,
@@ -64,7 +68,6 @@ impl ModelCached {
             &dbg,
             Arc::clone(&hull),
             conf.bounds_level_step,
-            bounds.clone(),
             Arc::clone(&thread_pool),
         );
         let path = conf.model_dir.clone().join(PathBuf::from("compartments"));
@@ -91,7 +94,9 @@ impl ModelCached {
             .iter()
             .filter(|path: &&PathBuf| path.file_name().is_some())
         {
-            let Some(name) = path.file_stem() else { continue };
+            let Some(name) = path.file_stem() else {
+                continue;
+            };
             let name = name.to_str().unwrap().to_string();
             let mesh = Arc::new(load_stl(&path, conf.model_scale));
             compartments.insert(
@@ -111,7 +116,6 @@ impl ModelCached {
                     &dbg,
                     Arc::clone(&mesh),
                     conf.bounds_level_step,
-                    bounds.clone(),
                     Arc::clone(&thread_pool),
                 ),
             );
@@ -126,6 +130,7 @@ impl ModelCached {
         );
         let model_cached = Self {
             dbg: dbg.clone(),
+            bounds,
             cache_dir: conf.cache_dir.clone(),
             displacement,
             compartments,
@@ -133,7 +138,6 @@ impl ModelCached {
             displacement_bounded,
             compartments_bounded,
         };
-        //   dbg!(model_cached.compartments.len());
         Ok(model_cached)
     }
     ///
@@ -143,6 +147,7 @@ impl ModelCached {
         self.rebuild_hull().map_err(|err| error.pass(err))?;
         self.rebuild_compartments().map_err(|err| error.pass(err))?;
         self.rebuild_windage().map_err(|err| error.pass(err))?;
+        log::info!("rebuild finish");
         Ok(())
     }
     ///
@@ -151,23 +156,18 @@ impl ModelCached {
     pub fn rebuild_hull(&self) -> Result<(), Error> {
         log::info!("rebuild_hull begin");
         let error = Error::new(&self.dbg, "rebuild_hull");
-        let (result, errors) = self.displacement.build();
-        if !errors.is_empty() {
-            return Err(error.pass_with(
-                "rebuild_hull",
-                errors.iter().fold(String::new(), |acc, err| {
-                    format!("{acc}\n\tIn error: {err}")
-                }),
-            ));
+        if let Err(err) = self.displacement.rebuld_and_save(&self.cache_dir) {
+            let error = error.pass_with("displacement rebuld_and_save", err);
+            log::error!("{}", format!("{:?}", error));
+            return Err(error);
         }
-        let (result, errors) = self.displacement_bounded.build();
-        if !errors.is_empty() {
-            return Err(error.pass_with(
-                "rebuild_hull",
-                errors.iter().fold(String::new(), |acc, err| {
-                    format!("{acc}\n\tIn error: {err}")
-                }),
-            ));
+        if let Err(err) = self
+            .displacement_bounded
+            .rebuld_and_save(&self.bounds, &self.cache_dir)
+        {
+            let error = error.pass_with("displacement_bounded rebuld_and_save", err);
+            log::error!("{}", format!("{:?}", error));
+            return Err(error);
         }
         log::info!("rebuild_hull finish");
         Ok(())
@@ -175,38 +175,40 @@ impl ModelCached {
     ///  Пересчет кэшей отсеков
     #[allow(dead_code)]
     pub fn rebuild_compartments(&self) -> Result<(), Error> {
+        log::info!("rebuild_compartments begin");
         let error: Error = Error::new(&self.dbg, "rebuild_compartments");
+        let cache_dir = self.cache_dir.join("compartments");
         for (name, compartment) in &self.compartments {
             //        println!("model_cached rebuild compartment:{name}");
-            let (result, errors) = compartment.build();
-            if !errors.is_empty() {
-                return Err(error.pass_with(
-                    "rebuild compartments",
-                    errors.iter().fold(String::new(), |acc, err| {
-                        format!("{acc}\n\tIn {name} error: {err}")
-                    }),
-                ));
+            if let Err(err) = compartment.rebuld_and_save(&cache_dir.join(name)) {
+                let error = error.pass_with("compartment rebuld_and_save", err);
+                log::error!("{}", format!("{:?}", error));
+                return Err(error);
             }
         }
         for (name, compartment) in &self.compartments_bounded {
             //        println!("model_cached rebuild compartment:{name}");
-            let (result, errors) = compartment.build();
-            if !errors.is_empty() {
-                return Err(error.pass_with(
-                    "rebuild compartments_bounded",
-                    errors.iter().fold(String::new(), |acc, err| {
-                        format!("{acc}\n\tIn {name} error: {err}")
-                    }),
-                ));
+            if let Err(err) = compartment.rebuld_and_save(&self.bounds, &cache_dir.join(name)) {
+                let error = error.pass_with("compartments_bounded rebuld_and_save", err);
+                log::error!("{}", format!("{:?}", error));
+                return Err(error);
             }
         }
+        log::info!("rebuild_compartments finish");
         Ok(())
     }
     ///
     /// Пересчет кэшей боковой поверхности корпуса
     #[allow(dead_code)]
     pub fn rebuild_windage(&self) -> Result<(), Error> {
-        let result = self.windage_area.build();
+        log::info!("rebuild_windage begin");
+        let error: Error = Error::new(&self.dbg, "rebuild_windage");
+        if let Err(err) = self.windage_area.rebuld_and_save(&self.cache_dir) {
+            let error = error.pass_with("windage_area rebuld_and_save", err);
+            log::error!("{}", format!("{:?}", error));
+            return Err(error);
+        }
+        log::info!("rebuild_windage finish");
         Ok(())
     }
 }

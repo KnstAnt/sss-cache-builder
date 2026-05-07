@@ -6,8 +6,7 @@ use sal_sync::{
     thread_pool::{JoinHandle, ThreadPool},
 };
 use std::{
-    collections::VecDeque,
-    sync::Arc,
+    collections::VecDeque, path::PathBuf, sync::Arc
 };
 
 use crate::entities::model_cached::*;
@@ -60,7 +59,7 @@ impl BuildDisplacementCache {
     ///
     /// Creates and starts worker for [DisplacementCache::calculate].
     /// results: [[heel, trim, draught, volume, vx, vy, vz, area, ax, ay, az, ix, iy, wx, wy]]
-    pub fn build(&self) -> (Vec<Vec<f64>>, Vec<Error>) {
+    fn build(&self) -> (Vec<Vec<f64>>, Vec<Error>) {
         log::info!("{}.build | Starting build", &self.dbg);
         let error = Error::new(&self.dbg, "build");
         let mut tasks: VecDeque<JoinHandle<_>> = VecDeque::new();
@@ -186,5 +185,24 @@ impl BuildDisplacementCache {
             }
         }
         (vec_results, errors)
+    }
+    //
+    pub fn rebuld_and_save(&self, dir_path: &PathBuf) -> Result<(), Error> {
+        let error = Error::new(&self.dbg, "rebuld_and_save");
+        let (result, errors) = self.build();
+        if !errors.is_empty() {
+            return Err(error.pass(
+                errors.iter().fold(String::new(), |acc, err| {
+                    format!("{acc}\n\tIn error: {err}")
+                }),
+            ));
+        } else if let Err(err) = save(
+            &self.dbg,
+            &dir_path.join("displacement_cache"),
+            result,
+        ) {
+            return Err(error.pass_with("save data", err));
+        }   
+        Ok(()) 
     }
 }

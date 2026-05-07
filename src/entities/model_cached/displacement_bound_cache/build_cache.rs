@@ -4,9 +4,9 @@ use sal_sync::{
     sync::Stack,
     thread_pool::{JoinHandle, ThreadPool},
 };
-use std::{collections::VecDeque, sync::Arc};
+use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
-use crate::entities::{Bounds, model_cached::HullSlicer};
+use crate::entities::{Bounds, model_cached::{HullSlicer, save}};
 
 ///
 /// Provides logic to calculate and store cache used by [super::DisplacementBoundCache].
@@ -14,7 +14,6 @@ pub struct BuildDisplacementBoundCache {
     dbg: Dbg,
     mesh: Arc<TriMesh>,
     level_step: f64,
-    bounds: Bounds,
     thread_pool: Arc<ThreadPool>,
 }
 //
@@ -27,7 +26,6 @@ impl BuildDisplacementBoundCache {
         parent: &Dbg,
         mesh: Arc<TriMesh>,
         level_step: f64,
-        bounds: Bounds,
         thread_pool: Arc<ThreadPool>,
     ) -> Self {
         debug_assert!(level_step > 0.);
@@ -35,14 +33,13 @@ impl BuildDisplacementBoundCache {
             dbg: Dbg::new(parent, "BuildDisplacementBoundCache"),
             mesh,
             level_step,
-            bounds,
             thread_pool,
         }
     }
     /// Построение кэшей
-    pub fn build(&self) -> (Vec<(f64, Vec<(f64, f64)>)>, Vec<Error>) {
+    fn build(&self, bounds: &Bounds) -> (Vec<(f64, Vec<(f64, f64)>)>, Vec<Error>) {
         log::info!("{}.build | Starting build", &self.dbg);
-        let (results, errors) = self._build();
+        let (results, errors) = self._build(bounds);
         let mut vec_results = Vec::new();
         while !results.is_empty() {
             if let Some((dx, result)) = results.pop() {
@@ -59,7 +56,7 @@ impl BuildDisplacementBoundCache {
         (vec_results, vec_errors)
     }
     //
-    pub fn _build(&self) -> (Arc<Stack<(f64, Vec<(f64, f64)>)>>, Arc<Stack<Error>>) {
+    pub fn _build(&self, bounds: &Bounds) -> (Arc<Stack<(f64, Vec<(f64, f64)>)>>, Arc<Stack<Error>>) {
         log::info!("{}._build | Starting _build", &self.dbg);
         let error = Error::new(&self.dbg, "_build");
         let mut tasks: VecDeque<JoinHandle<_>> = VecDeque::new();
@@ -71,7 +68,7 @@ impl BuildDisplacementBoundCache {
             errors.push(error);
         };
         let hull = HullSlicer::new(Arc::clone(&self.mesh));
-        let frames = self.bounds.frames();
+        let frames = bounds.frames();
         let slices = hull.slice(&frames);
         let scheduler = self.thread_pool.scheduler();
         for slice in slices.into_iter() {
@@ -110,4 +107,27 @@ impl BuildDisplacementBoundCache {
         }
         (results, errors)
     }
+    //
+    pub fn rebuld_and_save(&self, bounds: &Bounds, dir_path: &PathBuf) -> Result<(), Error> {
+        let error = Error::new(&self.dbg, "rebuld_and_save");
+        let (result, errors) = self.build(bounds);
+        if !errors.is_empty() {
+            return Err(error.pass(
+                errors.iter().fold(String::new(), |acc, err| {
+                    format!("{acc}\n\tIn error: {err}")
+                }),
+            ));
+        } 
+        let dir_path = dir_path.join("disp_bounded").join(format!("{}", bounds.len_qnt()));
+        for (i, (_, v)) in result.iter().enumerate() {
+            if let Err(err) = save(
+                &self.dbg,
+                &dir_path.join(format!("{i}")),
+                v.iter().map(|v| vec![v.0, v.1]).collect(),
+            ) {
+                return Err(error.pass_with("save data", err));
+            }              
+        }  
+        Ok(()) 
+    }      
 }

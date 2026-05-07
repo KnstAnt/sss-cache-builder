@@ -1,9 +1,7 @@
-mod file_io;
 use parry3d_f64::shape::TriMesh;
-use sal_core::dbg::Dbg;
-use std::{sync::Arc};
+use sal_core::{dbg::Dbg, error::Error};
+use std::{fs::File, path::PathBuf, sync::Arc};
 use crate::entities::model_cached::*;
-
 ///
 ///
 /// Площадь парусности корпуса и конструкций
@@ -41,7 +39,7 @@ impl WindageArea {
           }
     }
     /// пересчет для заданных значений
-    pub fn build(&self) -> WindageProfile {
+    fn build(&self) -> WindageProfile {
         WindageProfile::new(
             Arc::clone(&self.mesh), 
             self.midel_x, 
@@ -49,5 +47,22 @@ impl WindageArea {
             self.lbp, 
             self.resolution
         )
-    }
+      }
+    //
+    pub fn rebuld_and_save(&self, dir_path: &PathBuf) -> Result<(), Error> {
+        let error = Error::new(&self.dbg, "rebuld_and_save");
+        let result = self.build();
+        if let Err(err) = save(&self.dbg, &dir_path.join("windage"), &result) {
+            return Err(error.pass(err));
+        }
+        Ok(()) 
+    }  
+}
+//
+fn save(dbg: &Dbg, cache_path: &PathBuf, data: &WindageProfile) -> Result<(), Error> {
+    let error = Error::new(dbg, "save");
+    let mut file = File::create(cache_path).map_err(|err| error.pass_with("File::create", err.to_string()))?;
+    bincode::encode_into_std_write(data, &mut file, bincode::config::standard())
+        .map_err(|err| error.pass_with("bincode::encode_into_writer", err.to_string()))?;
+    Ok(())
 }

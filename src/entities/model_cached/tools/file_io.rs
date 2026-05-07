@@ -1,8 +1,9 @@
 use obj::{Obj, ObjData};
-use parry3d_f64::glamx::DQuat;
 use parry3d_f64::math::*;
 use parry3d_f64::shape::{TriMesh, TriMeshFlags};
+use sal_core::dbg::Dbg;
 use sal_core::error::Error;
+use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -78,4 +79,35 @@ pub fn write_stl(path: &PathBuf, mesh: &TriMesh) {
     stl_io::write_stl(&mut binary_stl, triangles.iter()).unwrap();
     let mut buffer = std::fs::File::create(&path).unwrap();
     buffer.write_all(&binary_stl).unwrap();
+}
+///
+pub fn save(dbg: &Dbg, cache_path: &PathBuf, vals: Vec<Vec<f64>>) -> Result<(), Error> {
+    let error = Error::new(dbg, "save");
+    let parent_dir = cache_path.parent().ok_or(error.err(format!(
+        "cache_path.parent error! path:{}",
+        cache_path.display()
+    )))?;
+    std::fs::create_dir_all(parent_dir).map_err(|err| {
+        error.pass_with(
+            format!("std::fs::create_dir_all error! path:{}", cache_path.display()),
+            err.to_string(),
+        )
+    })?;
+    let mut file = File::create(cache_path).map_err(|err| {
+        error.pass_with(
+            format!("File::create error! path:{}", cache_path.display()),
+            err.to_string(),
+        )
+    })?;
+    for col in vals.iter() {
+        let cols_str: Vec<_> = col.iter().map(ToString::to_string).collect();
+        let line = cols_str.join("\t");
+        writeln!(&mut file, "{}", line).map_err(|err| {
+            error.pass_with(
+                format!("Writing to file, path:{}", cache_path.display()),
+                err.to_string(),
+            )
+        })?;
+    }
+    Ok(())
 }

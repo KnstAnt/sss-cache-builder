@@ -16,7 +16,6 @@ pub struct BuildCompartmentBoundCache {
     dbg: Dbg,
     mesh: Arc<TriMesh>,
     level_step: f64,
-    bounds: Bounds,
     thread_pool: Arc<ThreadPool>,
 }
 //
@@ -29,7 +28,6 @@ impl BuildCompartmentBoundCache {
         parent: &Dbg,
         mesh: Arc<TriMesh>,
         level_step: f64,
-        bounds: Bounds,
         thread_pool: Arc<ThreadPool>,
     ) -> Self {
         debug_assert!(level_step > 0.);
@@ -37,12 +35,11 @@ impl BuildCompartmentBoundCache {
             dbg: Dbg::new(parent, "BuildCompartmentBoundCache"),
             mesh,
             level_step,
-            bounds,
             thread_pool,
         }
     }
     /// Построение кэшей со сдвигом основания в 0 по высоте
-    pub fn build(&self) -> (Vec<(f64, Option<Vec<(f64, f64)>>)>, Vec<Error>) {
+    fn build(&self, bounds: &Bounds) -> (Vec<(f64, Option<Vec<(f64, f64)>>)>, Vec<Error>) {
         log::info!(
             "{}.build | Starting build",
             &self.dbg
@@ -85,7 +82,7 @@ impl BuildCompartmentBoundCache {
         vec_results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
         (vec_results, vec_errors)
     }
-
+    //
     pub fn _build(
         self,
     ) -> (
@@ -111,7 +108,7 @@ impl BuildCompartmentBoundCache {
             parking_lot::lock_api::RwLock<parking_lot::RawRwLock, DisplacementShape>,
         > = self.shape.clone();
         let scheduler = self.thread_pool.scheduler();
-        for bound in self.bounds.iter() {
+        for bound in bounds.iter() {
             // _true_ if the caller has requisted to exit.
             // Note that in this case the file may be partially filled.
             if self.exit.load(Ordering::SeqCst) {
@@ -172,5 +169,5 @@ impl BuildCompartmentBoundCache {
             }
         }
         (results, errors)
-    }
+    } 
 }
