@@ -99,7 +99,6 @@ impl Slice {
             .fold((f64::MAX, f64::MIN), |(draught_min, draught_max), p| {
                 (draught_min.min(p.z), draught_max.max(p.z))
             });
-        println!("{draught_min}, {draught_max}");
         // расчет объема слоя
         let slice_volume = |z_low: f64, z_high: f64| {
             assert!(z_low < z_high);
@@ -154,10 +153,12 @@ impl Slice {
         let mut current_step = step / 30.; // сначала идем с маленьким шагом
                                                 // на маленьких осадках кривая не линейная
         let mut draught = draught_min;
-        while draught + current_step < draught_max {
-            layer_volumes.push((draught + current_step, slice_volume(draught, draught + current_step)));
+        let mut next_draught = draught + current_step;
+        while next_draught < draught_max {
+            layer_volumes.push((next_draught, slice_volume(draught, next_draught)));
      //       dbg!(draught, current_step);
-            draught += current_step;
+            draught = next_draught;
+            next_draught = draught + current_step;
             current_step = (current_step*1.5).min(step);
         }
         layer_volumes.push((draught_max, slice_volume(draught, draught_max)));
@@ -166,7 +167,7 @@ impl Slice {
         let full_volume = layer_volumes.into_iter().fold(0., |full_volume, (level, volume)| {
             let full_volume = full_volume + volume;
             results.push((level, full_volume));
-            full_volume + volume
+            full_volume
         });
         results.push((f64::MAX, full_volume));
         results

@@ -190,6 +190,7 @@ impl BuildDisplacementCache {
     pub fn rebuld_and_save(&self, dir_path: &PathBuf) -> Result<(), Error> {
         let error = Error::new(&self.dbg, "rebuld_and_save");
         let (result, errors) = self.build();
+        create_dir(&self.dbg, &dir_path)?;
         if !errors.is_empty() {
             return Err(error.pass(
                 errors.iter().fold(String::new(), |acc, err| {

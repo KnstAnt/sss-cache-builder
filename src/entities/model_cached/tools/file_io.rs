@@ -83,16 +83,6 @@ pub fn write_stl(path: &PathBuf, mesh: &TriMesh) {
 ///
 pub fn save(dbg: &Dbg, cache_path: &PathBuf, vals: Vec<Vec<f64>>) -> Result<(), Error> {
     let error = Error::new(dbg, "save");
-    let parent_dir = cache_path.parent().ok_or(error.err(format!(
-        "cache_path.parent error! path:{}",
-        cache_path.display()
-    )))?;
-    std::fs::create_dir_all(parent_dir).map_err(|err| {
-        error.pass_with(
-            format!("std::fs::create_dir_all error! path:{}", cache_path.display()),
-            err.to_string(),
-        )
-    })?;
     let mut file = File::create(cache_path).map_err(|err| {
         error.pass_with(
             format!("File::create error! path:{}", cache_path.display()),
@@ -109,5 +99,20 @@ pub fn save(dbg: &Dbg, cache_path: &PathBuf, vals: Vec<Vec<f64>>) -> Result<(), 
             )
         })?;
     }
+    Ok(())
+}
+///
+pub fn remove(_: &Dbg, path: &PathBuf)  {
+    let _ = std::fs::remove_file(path);
+}
+///
+pub fn create_dir(dbg: &Dbg, dir_path: &PathBuf) -> Result<(), Error> {
+    let error = Error::new(dbg, "save");    
+    std::fs::create_dir_all(dir_path).map_err(|err| {
+        error.pass_with(
+            format!("std::fs::create_dir_all error! path:{}", dir_path.display()),
+            err.to_string(),
+        )
+    })?;
     Ok(())
 }

@@ -52,6 +52,7 @@ impl WindageArea {
     pub fn rebuld_and_save(&self, dir_path: &PathBuf) -> Result<(), Error> {
         let error = Error::new(&self.dbg, "rebuld_and_save");
         let result = self.build();
+        create_dir(&self.dbg, &dir_path)?;
         if let Err(err) = save(&self.dbg, &dir_path.join("windage"), &result) {
             return Err(error.pass(err));
         }

@@ -7,9 +7,10 @@ mod windage_area;
 mod draught;
 mod tools;
 pub mod displacement_cache;
-pub mod displacement_bound_cache;
+//pub mod displacement_bound_cache;
 pub mod compartment_cache;
-//mod compartment_bound_cache;
+//pub mod compartment_bound_cache;
+pub mod bound_cache;
 
 pub use tools::*;
 pub use model_cached_conf::*;

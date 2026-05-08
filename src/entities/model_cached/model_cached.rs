@@ -2,9 +2,7 @@ use super::*;
 use crate::entities::{
     Bounds,
     model_cached::{
-        compartment_cache::build_cache::BuildCompartmentCache,
-        displacement_bound_cache::build_cache::BuildDisplacementBoundCache,
-        displacement_cache::build_cache::BuildDisplacementCache,
+        bound_cache::{BuildCompartmentBoundCache, BuildDisplacementBoundCache}, compartment_cache::build_cache::BuildCompartmentCache, displacement_cache::build_cache::BuildDisplacementCache
     },
 };
 use core::f64;
@@ -33,7 +31,7 @@ pub struct ModelCached {
     /// - cache for bounds of model, [qnt_bounds, cache]
     displacement_bounded: BuildDisplacementBoundCache,
     /// - cache for bounds of compartments, [qnt_bounds, [code, cache]]
-    compartments_bounded: IndexMap<String, BuildDisplacementBoundCache>,
+    compartments_bounded: IndexMap<String, BuildCompartmentBoundCache>,
 }
 //
 //
@@ -112,7 +110,7 @@ impl ModelCached {
             );
             compartments_bounded.insert(
                 name.clone(),
-                BuildDisplacementBoundCache::new(
+                BuildCompartmentBoundCache::new(
                     &dbg,
                     Arc::clone(&mesh),
                     conf.bounds_level_step,
@@ -163,7 +161,7 @@ impl ModelCached {
         }
         if let Err(err) = self
             .displacement_bounded
-            .rebuld_and_save(&self.bounds, &self.cache_dir)
+            .rebuld_and_save(&self.bounds, &self.cache_dir.join("disp_bounded"))
         {
             let error = error.pass_with("displacement_bounded rebuld_and_save", err);
             log::error!("{}", format!("{:?}", error));

@@ -8,7 +8,7 @@ use std::{
     collections::VecDeque, path::{Path, PathBuf}, sync::Arc
 };
 
-use crate::entities::{Position, model_cached::{calculate_hydrostatic, calculate_inertia, compartment_center, draught_steps, properties, save}};
+use crate::entities::{Position, model_cached::{calculate_hydrostatic, calculate_inertia, compartment_center, create_dir, draught_steps, properties, save}};
 
 ///
 /// Provides logic to calculate and store cache used by [super::CompartmentCache].
@@ -196,6 +196,7 @@ impl BuildCompartmentCache {
     pub fn rebuld_and_save(&self, dir_path: &PathBuf) -> Result<(), Error> {
         let error = Error::new(&self.dbg, format!("rebuld_and_save"));
         let (result, errors) = self.build();
+        create_dir(&self.dbg, &dir_path)?;
         if !errors.is_empty() {
             return Err(error.pass(
                 errors.iter().fold(String::new(), |acc, err| {

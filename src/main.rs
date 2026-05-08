@@ -161,4 +161,6 @@ fn main() {
 */
 
     model_cached.rebuld().unwrap();
+  //  model_cached.rebuild_hull().unwrap();
+
 }

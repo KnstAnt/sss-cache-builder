@@ -9,4 +9,6 @@ desktop.ini
 
 # too heavy
 assets/model/*
+assets/model/*.*
 assets/cache/*
+assets/cache/*.*
