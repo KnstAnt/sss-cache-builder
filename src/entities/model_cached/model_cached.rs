@@ -54,7 +54,7 @@ impl ModelCached {
         let displacement = BuildDisplacementCache::new(
             &dbg,
             Arc::clone(&hull),
-            conf.model_x,
+            conf.midel_x,
             conf.hull_heel_steps,
             conf.hull_trim_steps,
             conf.hull_draught_min,
@@ -121,7 +121,7 @@ impl ModelCached {
         let windage_area = WindageArea::new(
             &dbg,
             Arc::clone(&hull),
-            conf.model_x,
+            conf.midel_x,
             conf.draught_min,
             conf.ship_length_lbp,
             10000,
