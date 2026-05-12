@@ -28,9 +28,7 @@ splines = "~5.0"
 obj = "~0.10"
 stl_io = "~0.10"
 spade = "2.15"
-parry2d-f64 = "~0.26"
 parry3d-f64 = "~0.26"
-rayon = "1.11.0"
 #
 # Collections
 indexmap = "~2.12"
