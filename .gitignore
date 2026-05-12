@@ -10,7 +10,6 @@ log*.*
 desktop.ini
 
 # too heavy
-assets
-
+assets/
 assets/cache/sofia/*
 assets/cache/sofia/*.*
