@@ -1,5 +1,7 @@
 use parry3d_f64::math::Pose;
 use parry3d_f64::shape::TriMesh;
+use sal_3dlib::HullSlicer;
+use sal_3dlib_core::{cache::file_io::save, file_io::{create_dir, remove}, math::Bounds};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{
     sync::Stack,
@@ -7,10 +9,6 @@ use sal_sync::{
 };
 use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
-use crate::entities::{
-    Bounds,
-    model_cached::{HullSlicer, create_dir, remove, save},
-};
 
 ///
 /// Provides logic to calculate and store cache used by [super::DisplacementBoundCache].
@@ -56,7 +54,7 @@ impl BuildBoundCache {
         while !results.is_empty() {
             if let Some((dx, mut result)) = results.pop() {
                 if shift_z != 0. {
-                    result.iter_mut().for_each(|(z, v)| *z -= shift_z);
+                    result.iter_mut().for_each(|(z, _)| *z -= shift_z);
                 }
                 vec_results.push((dx, result));
             }

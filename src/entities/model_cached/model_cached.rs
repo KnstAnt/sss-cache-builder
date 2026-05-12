@@ -1,13 +1,13 @@
 use super::*;
-use crate::entities::{
-    Bounds,
-    model_cached::{
-        bound_cache::{BuildCompartmentBoundCache, BuildDisplacementBoundCache}, compartment_cache::build_cache::BuildCompartmentCache, displacement_cache::build_cache::BuildDisplacementCache
-    },
+use crate::entities::model_cached::{
+    bound_cache::{BuildCompartmentBoundCache, BuildDisplacementBoundCache},
+    compartment_cache::build_cache::BuildCompartmentCache,
+    displacement_cache::build_cache::BuildDisplacementCache,
 };
-use core::f64;
 use indexmap::IndexMap;
-use parry2d_f64::math::Vec3;
+use parry3d_f64::math::Vec3;
+use sal_3dlib::load_stl;
+use sal_3dlib_core::math::Bounds;
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{
     sync::{RwLock, Stack},
@@ -49,7 +49,8 @@ impl ModelCached {
         let hull = load_stl(
             &conf.model_dir.clone().join(PathBuf::from("hull.stl")),
             conf.model_scale,
-        );
+        )
+        .map_err(|err| error.pass(err))?;
         let hull = Arc::new(hull);
         let displacement = BuildDisplacementCache::new(
             &dbg,
@@ -96,7 +97,8 @@ impl ModelCached {
                 continue;
             };
             let name = name.to_str().unwrap().to_string();
-            let mesh = Arc::new(load_stl(&path, conf.model_scale));
+            let mesh =
+                Arc::new(load_stl(&path, conf.model_scale).map_err(|err| error.pass(err))?);
             compartments.insert(
                 name.clone(),
                 BuildCompartmentCache::new(

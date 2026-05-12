@@ -1,14 +1,14 @@
 use parry3d_f64::shape::TriMesh;
+use sal_3dlib_core::{cache::file_io::save, file_io::create_dir, math::Position};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{
     sync::Stack,
     thread_pool::{JoinHandle, ThreadPool},
 };
 use std::{
-    collections::VecDeque, path::{Path, PathBuf}, sync::Arc
+    collections::VecDeque, path::PathBuf, sync::Arc
 };
-
-use crate::entities::{Position, model_cached::{calculate_hydrostatic, calculate_inertia, compartment_center, create_dir, draught_steps, properties, save}};
+use sal_3dlib::*;
 
 ///
 /// Provides logic to calculate and store cache used by [super::CompartmentCache].

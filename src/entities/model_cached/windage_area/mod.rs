@@ -1,7 +1,8 @@
 use parry3d_f64::shape::TriMesh;
+use sal_3dlib::WindageProfile;
+use sal_3dlib_core::file_io::create_dir;
 use sal_core::{dbg::Dbg, error::Error};
 use std::{fs::File, path::PathBuf, sync::Arc};
-use crate::entities::model_cached::*;
 ///
 ///
 /// Площадь парусности корпуса и конструкций
