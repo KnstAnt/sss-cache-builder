@@ -1371,7 +1371,7 @@ dependencies = [
 [[package]]
 name = "sal-3dlib"
 version = "0.0.9"
-source = "git+https://github.com/a-givertzman/rust-sal-3dlib.git?branch=new_algorithm#ca7cfa6cb121d9ae1d0a1d374db6fea058a43ef7"
+source = "git+https://github.com/a-givertzman/rust-sal-3dlib.git?branch=new_algorithm#e09cd6e31694049eb256fdc660e0818aaecda4de"
 dependencies = [
  "bincode",
  "log",
@@ -1379,13 +1379,13 @@ dependencies = [
  "parry3d-f64",
  "sal-3dlib-core",
  "sal-core",
- "stl_io",
+ "stl_io 0.11.0",
 ]
 
 [[package]]
 name = "sal-3dlib-core"
 version = "0.0.9"
-source = "git+https://github.com/a-givertzman/rust-sal-3dlib.git?branch=new_algorithm#ca7cfa6cb121d9ae1d0a1d374db6fea058a43ef7"
+source = "git+https://github.com/a-givertzman/rust-sal-3dlib.git?branch=new_algorithm#e09cd6e31694049eb256fdc660e0818aaecda4de"
 dependencies = [
  "bincode",
  "log",
@@ -1631,7 +1631,7 @@ dependencies = [
  "serde_yaml",
  "spade",
  "splines",
- "stl_io",
+ "stl_io 0.10.0",
  "testing",
 ]
 
@@ -1650,6 +1650,12 @@ dependencies = [
  "byteorder",
  "float-cmp",
 ]
+
+[[package]]
+name = "stl_io"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "567641995c51a3b8befddb13e1826187bcf7eb7ca8d13746bfd1cc5a22e89fa8"
 
 [[package]]
 name = "stringprep"

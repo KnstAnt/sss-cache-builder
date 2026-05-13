@@ -54,17 +54,7 @@ impl WindageArea {
         let error = Error::new(&self.dbg, "rebuld_and_save");
         let result = self.build();
         create_dir(&self.dbg, &dir_path)?;
-        if let Err(err) = save(&self.dbg, &dir_path.join("windage"), &result) {
-            return Err(error.pass(err));
-        }
-        Ok(()) 
+        result.save(&dir_path.join("windage")).map_err(|err| error.pass(err))
     }  
 }
-//
-fn save(dbg: &Dbg, cache_path: &PathBuf, data: &WindageProfile) -> Result<(), Error> {
-    let error = Error::new(dbg, "save");
-    let mut file = File::create(cache_path).map_err(|err| error.pass_with("File::create", err.to_string()))?;
-    bincode::encode_into_std_write(data, &mut file, bincode::config::standard())
-        .map_err(|err| error.pass_with("bincode::encode_into_writer", err.to_string()))?;
-    Ok(())
-}
+
