@@ -132,7 +132,7 @@ impl BuildBoundCache {
                 format!("{acc}\n\tIn error: {err}")
             })));
         }
-        let dir_path = dir_path.join(format!("{}", bounds.len_qnt()));
+        let dir_path = dir_path.join("distr").join(format!("{}", bounds.len_qnt()));
         create_dir(&self.dbg, &dir_path)?;
         for (i, (_, v)) in result.iter().enumerate() {
             let path = dir_path.join(format!("{i}"));

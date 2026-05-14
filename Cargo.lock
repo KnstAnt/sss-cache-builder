@@ -1371,7 +1371,7 @@ dependencies = [
 [[package]]
 name = "sal-3dlib"
 version = "0.0.9"
-source = "git+https://github.com/a-givertzman/rust-sal-3dlib.git?branch=new_algorithm#e09cd6e31694049eb256fdc660e0818aaecda4de"
+source = "git+https://github.com/a-givertzman/rust-sal-3dlib.git?branch=new_algorithm#ae890406c67f6173ff1cc6ac49de1b2812d6dda0"
 dependencies = [
  "bincode",
  "log",
@@ -1385,7 +1385,7 @@ dependencies = [
 [[package]]
 name = "sal-3dlib-core"
 version = "0.0.9"
-source = "git+https://github.com/a-givertzman/rust-sal-3dlib.git?branch=new_algorithm#e09cd6e31694049eb256fdc660e0818aaecda4de"
+source = "git+https://github.com/a-givertzman/rust-sal-3dlib.git?branch=new_algorithm#ae890406c67f6173ff1cc6ac49de1b2812d6dda0"
 dependencies = [
  "bincode",
  "log",
