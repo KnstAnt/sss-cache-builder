@@ -1,4 +1,5 @@
-use crate::entities::Position;
+use sal_3dlib_core::math::Position;
+
 
 pub mod build_cache;
 

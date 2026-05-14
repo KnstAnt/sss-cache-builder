@@ -1,5 +1,7 @@
 use parry3d_f64::math::Vec3;
 use parry3d_f64::shape::TriMesh;
+use sal_3dlib::*;
+use sal_3dlib_core::{cache::file_io::save, file_io::create_dir};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{
     sync::Stack,
@@ -8,8 +10,6 @@ use sal_sync::{
 use std::{
     collections::VecDeque, path::PathBuf, sync::Arc
 };
-
-use crate::entities::model_cached::*;
 
 ///
 /// Provides logic to calculate and store cache used by [super::DisplacementCache].

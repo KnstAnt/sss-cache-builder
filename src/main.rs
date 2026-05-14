@@ -1,9 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 use debugging::session::debug_session::{DebugSession, LogLevel};
 use log::info;
+use sal_3dlib_core::math::Bounds;
 use sal_core::dbg::Dbg;
 use sal_sync::thread_pool::ThreadPool;
-use crate::{conf::conf::Conf, entities::{Bounds, model_cached::{ModelCached, ModelCachedConf}}};
+use crate::{conf::conf::Conf, entities::{model_cached::{ModelCached, ModelCachedConf}}};
 mod entities;
 mod conf;
 

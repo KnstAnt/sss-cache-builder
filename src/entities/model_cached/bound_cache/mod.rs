@@ -1,5 +1,6 @@
-use crate::entities::{Bounds, model_cached::bound_cache::build_cache::BuildBoundCache};
+use crate::entities::{model_cached::bound_cache::build_cache::BuildBoundCache};
 use parry3d_f64::shape::TriMesh;
+use sal_3dlib_core::math::Bounds;
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::thread_pool::ThreadPool;
 use std::{path::PathBuf, sync::Arc};

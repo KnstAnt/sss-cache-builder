@@ -1,7 +1,5 @@
 /target
 
-Cargo.lock
-
 # log files
 *.log
 log*.*
@@ -10,7 +8,8 @@ log*.*
 desktop.ini
 
 # too heavy
-/assets
-
+assets/
 assets/cache/sofia/*
 assets/cache/sofia/*.*
+
+Cargo.lock
