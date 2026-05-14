@@ -1,7 +1,5 @@
 /target
 
-Cargo.lock
-
 # log files
 *.log
 log*.*
@@ -14,3 +12,4 @@ assets/
 assets/cache/sofia/*
 assets/cache/sofia/*.*
 
+Cargo.lock
