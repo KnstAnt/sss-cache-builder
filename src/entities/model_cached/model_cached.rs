@@ -163,7 +163,7 @@ impl ModelCached {
         }
         if let Err(err) = self
             .displacement_bounded
-            .rebuld_and_save(&self.bounds, &self.cache_dir.join("disp_bounded"))
+            .rebuld_and_save(&self.bounds, &self.cache_dir)
         {
             let error = error.pass_with("displacement_bounded rebuld_and_save", err);
             log::error!("{}", format!("{:?}", error));
